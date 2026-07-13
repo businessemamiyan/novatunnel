@@ -1,0 +1,7 @@
+asyncpg
+python-dotenv
+httpx
+qrcode[pil]
+Pillow
+APScheduler
+instagrapi

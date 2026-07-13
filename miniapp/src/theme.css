@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/Vazirmatn-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/Vazirmatn-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/Vazirmatn-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+
+:root {
+  --bg-deep: #050914;
+  --bg-mid: #0d0a24;
+  --surface: rgba(15, 36, 56, 0.55);
+  --surface-border: rgba(70, 220, 190, 0.25);
+  --text-primary: #eafffa;
+  --text-secondary: #7fa89c;
+  --accent: #3ee8c3;
+  --accent-violet: #9b6bd6;
+  --danger: #f0616a;
+  --warning: #f0c419;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: "Vazirmatn", sans-serif;
+  background: radial-gradient(circle at 20% 0%, #0a2438 0%, var(--bg-deep) 55%),
+    linear-gradient(160deg, #071a2b 0%, var(--bg-mid) 100%);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  direction: rtl;
+  text-align: right;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.glass-card {
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 20px;
+  box-shadow: 0 0 24px rgba(45, 212, 191, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+::-webkit-scrollbar {
+  display: none;
+}

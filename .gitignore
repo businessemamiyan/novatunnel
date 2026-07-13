@@ -1,0 +1,32 @@
+# Claude Code local settings — contains secrets captured from allowed commands, never commit
+.claude/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+
+# Node / frontend build
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Real secrets live only on the servers, never locally as a committed file
+.env
+.env.local
+*.env
+!*.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# One-off local backups / scratch dumps
+backups/
+
+# Real credentials dumps — never track these
+moshakhasat.md
+get_session.py
+ig_session.json

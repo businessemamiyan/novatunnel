@@ -1,0 +1,3322 @@
+{
+  "name": "NovaTunnel - Telegram VPN Sales Bot v1.0",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "بخش A) ورود و مسیریابی\nهر آپدیت تلگرام اینجا می‌رسد و دسته‌بندی می‌شود.",
+        "height": 200,
+        "width": 420,
+        "color": 4
+      },
+      "id": "e69b6f4f-880e-4bfc-94a4-ff76f9f6a5ec",
+      "name": "Note_a11e5abd",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        -480
+      ]
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message",
+          "callback_query"
+        ]
+      },
+      "id": "b7c7ed71-b171-4149-a02e-8f4461e30935",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        -460
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "NovaTunnel Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst body = $input.first().json;\nconst msg = body.message || (body.callback_query ? body.callback_query.message : null);\nconst cb = body.callback_query;\nconst from = cb ? cb.from : body.message.from;\nconst out = {\n  telegramId: from.id, username: from.username || '', firstName: from.first_name || '',\n  chatId: msg.chat.id, messageId: msg.message_id, isCallback: !!cb,\n  callbackData: cb ? cb.data : null, callbackQueryId: cb ? cb.id : null,\n  text: (body.message && body.message.text) ? body.message.text : '',\n  hasPhoto: !!(body.message && body.message.photo),\n  photoFileId: (body.message && body.message.photo) ? body.message.photo[body.message.photo.length - 1].file_id : null,\n};\nif (out.isCallback) out.routeType = 'callback';\nelse if (out.text.indexOf('/start') === 0) out.routeType = 'start';\nelse if (out.text.indexOf('/myaccount') === 0) out.routeType = 'myaccount';\nelse if (out.text.indexOf('/admin') === 0) out.routeType = 'admin';\nelse if (out.hasPhoto) out.routeType = 'photo_receipt';\nelse out.routeType = 'other_text';\nconst refMatch = out.text.match(/\\/start(?:@\\w+)?\\s+ref_(\\d+)/);\nout.referrerId = refMatch ? refMatch[1] : null;\nreturn [{ json: out }];\n"
+      },
+      "id": "c4ffd97d-1f7c-4940-88c6-238f54d80879",
+      "name": "Parse Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        -460
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "outputKey": "start",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.routeType}}",
+                    "rightValue": "start",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "callback",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.routeType}}",
+                    "rightValue": "callback",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "myaccount",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.routeType}}",
+                    "rightValue": "myaccount",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "admin",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.routeType}}",
+                    "rightValue": "admin",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "photo_receipt",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.routeType}}",
+                    "rightValue": "photo_receipt",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "9afed3f2-ad56-42a0-bd24-748321647602",
+      "name": "Route Update Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        540,
+        -460
+      ]
+    },
+    {
+      "parameters": {
+        "content": "بخش B) /start — بررسی عضویت اجباری در کانال/اینستاگرام و ثبت‌نام کاربر.",
+        "height": 200,
+        "width": 420,
+        "color": 4
+      },
+      "id": "99f07800-6cfa-48d3-be3e-0611d4170b7a",
+      "name": "Note_f4adf863",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        -180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.telegram.org/bot{{$env.TELEGRAM_BOT_TOKEN}}/getChatMember",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "@novatunnelch"
+            },
+            {
+              "name": "user_id",
+              "value": "={{$json.telegramId}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3015d7ec-fad0-4f5c-b3b3-e3788a5a2218",
+      "name": "Check Channel Membership",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{$json.result.status}}",
+              "rightValue": "left",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "cc6518a9-1257-4c7d-b923-baceeaf48eaa",
+      "name": "Is Member?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        520,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/users",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.SUPABASE_SERVICE_KEY}}"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": {
+          "telegram_id": "={{$('Parse Update').item.json.telegramId}}",
+          "username": "={{$('Parse Update').item.json.username}}",
+          "first_name": "={{$('Parse Update').item.json.firstName}}",
+          "referrer_id": "={{$('Parse Update').item.json.referrerId}}",
+          "joined_at": "={{$now.toISO()}}"
+        }
+      },
+      "id": "6265a602-723f-4716-a61d-3a1352c1e024",
+      "name": "Upsert User",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        780,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "=👋 به NovaTunnel خوش اومدی!\nWelcome to NovaTunnel!\n\nزبان خودت رو انتخاب کن / Choose your language:",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        },
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            [
+              {
+                "text": "🇮🇷 فارسی",
+                "callbackData": "lang_fa"
+              },
+              {
+                "text": "🇬🇧 English",
+                "callbackData": "lang_en"
+              }
+            ]
+          ]
+        }
+      },
+      "id": "672a5f49-0e95-4200-a667-3010f81ce76b",
+      "name": "Send Language Selection",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1040,
+        -220
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "NovaTunnel Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "=🚫 برای استفاده از ربات NovaTunnel اول باید عضو کانال تلگرام و پیج اینستاگرام بشی.\n\nبعد از عضویت روی «✅ عضو شدم» بزن.\n\n🚫 Please join our Telegram channel and Instagram first, then tap the check button below.",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        },
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            [
+              {
+                "text": "📣 کانال تلگرام",
+                "url": "https://t.me/novatunnelch"
+              }
+            ],
+            [
+              {
+                "text": "📷 اینستاگرام",
+                "url": "https://www.instagram.com/novatunnel?igsh=aWhhMnNuNTM3YWNo"
+              }
+            ],
+            [
+              {
+                "text": "✅ عضو شدم، بررسی کن",
+                "callbackData": "check_membership"
+              }
+            ]
+          ]
+        }
+      },
+      "id": "f76a5af8-2325-41f7-9bfc-e79d51248821",
+      "name": "Send Join Required Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        780,
+        -80
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "NovaTunnel Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "بخش C) مسیریابی کلیک دکمه‌ها (callback) — زبان، منوی اصلی و همه زیرمنوها از همینجا شاخه می‌شوند.",
+        "height": 220,
+        "width": 420,
+        "color": 4
+      },
+      "id": "6002721a-ffa0-43dc-8149-3745a9fff565",
+      "name": "Note_541a698b",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/users",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.SUPABASE_SERVICE_KEY}}"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "telegram_id",
+              "value": "=eq.{{$json.telegramId}}"
+            },
+            {
+              "name": "select",
+              "value": "*"
+            }
+          ]
+        }
+      },
+      "id": "bb22c516-b8d8-4000-b789-f5e9ae875290",
+      "name": "Get User Record",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "outputKey": "lang_fa",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$('Parse Update').item.json.callbackData}}",
+                    "rightValue": "lang_fa",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "lang_en",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$('Parse Update').item.json.callbackData}}",
+                    "rightValue": "lang_en",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "check_membership",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$('Parse Update').item.json.callbackData}}",
+                    "rightValue": "check_membership",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "buy_plan",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$('Parse Update').item.json.callbackData}}",
+                    "rightValue": "buy_plan",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "my_subs",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$('Parse Update').item.json.callbackData}}",
+                    "rightValue": "my_subs",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "my_account",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$('Parse Update').item.json.callbackData}}",
+                    "rightValue": "my_account",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "wallet",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$('Parse Update').item.json.callbackData}}",
+                    "rightValue": "wallet",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "support",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$('Parse Update').item.json.callbackData}}",
+                    "rightValue": "support",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "referral",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$('Parse Update').item.json.callbackData}}",
+                    "rightValue": "referral",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "about",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$('Parse Update').item.json.callbackData}}",
+                    "rightValue": "about",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "back_main",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$('Parse Update').item.json.callbackData}}",
+                    "rightValue": "back_main",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ],
+          "options": {
+            "fallbackOutput": "extra"
+          }
+        }
+      },
+      "id": "adb5ebbc-1d5a-4d64-bb57-ad84bfc812c9",
+      "name": "Callback Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        540,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/users",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.SUPABASE_SERVICE_KEY}}"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "telegram_id",
+              "value": "=eq.{{$('Parse Update').item.json.telegramId}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": {
+          "language": "={{$('Parse Update').item.json.callbackData === 'lang_fa' ? 'fa' : 'en'}}"
+        }
+      },
+      "id": "d8b6bbb6-8fbc-4f84-8242-5ec0a201526f",
+      "name": "Save Language Choice",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        820,
+        -360
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst lang = $json.language || ($('Parse Update').item.json.callbackData === 'lang_fa' ? 'fa' : 'en');\nconst fa = {\n  text: '🏠 منوی اصلی NovaTunnel\\nاز دکمه‌های زیر استفاده کن:',\n  buttons: [\n    [{ text: '🛒 خرید اشتراک VPN', callback_data: 'buy_plan' }],\n    [{ text: '📦 اشتراک‌های فعال من', callback_data: 'my_subs' }, { text: '🔑 حساب من', callback_data: 'my_account' }],\n    [{ text: '💳 کیف پول من', callback_data: 'wallet' }, { text: '📣 دعوت از دوستان', callback_data: 'referral' }],\n    [{ text: '📞 پشتیبانی', callback_data: 'support' }, { text: 'ℹ️ درباره ما', callback_data: 'about' }],\n  ]\n};\nconst en = {\n  text: '🏠 NovaTunnel Main Menu\\nChoose an option below:',\n  buttons: [\n    [{ text: '🛒 Buy VPN Plan', callback_data: 'buy_plan' }],\n    [{ text: '📦 My Subscriptions', callback_data: 'my_subs' }, { text: '🔑 My Account', callback_data: 'my_account' }],\n    [{ text: '💳 My Wallet', callback_data: 'wallet' }, { text: '📣 Refer a Friend', callback_data: 'referral' }],\n    [{ text: '📞 Support', callback_data: 'support' }, { text: 'ℹ️ About Us', callback_data: 'about' }],\n  ]\n};\nconst t = lang === 'fa' ? fa : en;\nreturn [{ json: { chatId: $('Parse Update').item.json.chatId, text: t.text, buttons: t.buttons, lang } }];\n"
+      },
+      "id": "083cbb33-8ca5-4648-a381-94f4a45c6cd8",
+      "name": "Build Main Menu Text+Buttons",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1080,
+        -360
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "={{$json.text}}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": "={{$json.buttons}}"
+        }
+      },
+      "id": "646f2503-4305-4929-87be-324c75a1cd97",
+      "name": "Send Main Menu",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1340,
+        -360
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "NovaTunnel Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "بخش D) خرید پلن — انتخاب مدت، نمایش قیمت و انتخاب روش پرداخت.\nقیمت‌ها Placeholder هستن.",
+        "height": 200,
+        "width": 420,
+        "color": 4
+      },
+      "id": "fa0af267-625b-4f05-ab28-6ca6229b7419",
+      "name": "Note_e6faffeb",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "=🛒 یک پلن انتخاب کن / Choose a plan:\n\n1️⃣ ۱ ماهه - ۳۰ گیگ - ۱۵۰,۰۰۰ تومان\n3️⃣ ۳ ماهه - ۱۰۰ گیگ - ۳۹۰,۰۰۰ تومان\n6️⃣ ۶ ماهه - ۲۰۰ گیگ - ۶۹۰,۰۰۰ تومان\n🅰️ ۱ ساله - ۵۰۰ گیگ - ۱,۱۹۰,۰۰۰ تومان",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        },
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            [
+              {
+                "text": "۱ ماهه - 150,000T",
+                "callbackData": "plan_1m"
+              }
+            ],
+            [
+              {
+                "text": "۳ ماهه - 390,000T",
+                "callbackData": "plan_3m"
+              }
+            ],
+            [
+              {
+                "text": "۶ ماهه - 690,000T",
+                "callbackData": "plan_6m"
+              }
+            ],
+            [
+              {
+                "text": "۱ ساله - 1,190,000T",
+                "callbackData": "plan_12m"
+              }
+            ],
+            [
+              {
+                "text": "⬅️ بازگشت",
+                "callbackData": "back_main"
+              }
+            ]
+          ]
+        }
+      },
+      "id": "0ce690f1-8d78-4de7-b388-f226dee70826",
+      "name": "Show Plan Tiers",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        260,
+        400
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "NovaTunnel Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst plans = {\n  plan_1m:  { months: 1,  gb: 30,  price: 150000, label_fa: '۱ ماهه', label_en: '1 Month' },\n  plan_3m:  { months: 3,  gb: 100, price: 390000, label_fa: '۳ ماهه', label_en: '3 Months' },\n  plan_6m:  { months: 6,  gb: 200, price: 690000, label_fa: '۶ ماهه', label_en: '6 Months' },\n  plan_12m: { months: 12, gb: 500, price: 1190000, label_fa: '۱ ساله', label_en: '1 Year' },\n};\nconst data = $('Parse Update').item.json;\nconst plan = plans[data.callbackData];\nreturn [{ json: { ...data, plan, planKey: data.callbackData } }];\n"
+      },
+      "id": "0a003343-2444-4dd3-9464-dc8c2b563924",
+      "name": "Calculate Plan Price+Traffic",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "=روش پرداخت رو انتخاب کن / Choose payment method:",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        },
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            [
+              {
+                "text": "💳 درگاه زرین‌پال",
+                "callbackData": "=pay_zarinpal_{{$json.planKey}}"
+              }
+            ],
+            [
+              {
+                "text": "🏦 کارت به کارت",
+                "callbackData": "=pay_card_{{$json.planKey}}"
+              }
+            ],
+            [
+              {
+                "text": "🪙 پرداخت کریپتو",
+                "callbackData": "=pay_crypto_{{$json.planKey}}"
+              }
+            ],
+            [
+              {
+                "text": "⬅️ بازگشت",
+                "callbackData": "buy_plan"
+              }
+            ]
+          ]
+        }
+      },
+      "id": "bf2f9dd8-6e95-4287-a3c6-b6d83edf46fc",
+      "name": "Show Payment Methods",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        800,
+        560
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "NovaTunnel Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst cb = $('Parse Update').item.json.callbackData || '';\nlet action = null, telegramId = $('Parse Update').item.json.telegramId, planKey = null, targetUser = null;\nlet m;\nif ((m = cb.match(/^pay_zarinpal_(.+)$/))) { action = 'pay_zarinpal'; planKey = m[1]; }\nelse if ((m = cb.match(/^pay_card_(.+)$/))) { action = 'pay_card'; planKey = m[1]; }\nelse if ((m = cb.match(/^pay_crypto_(.+)$/))) { action = 'pay_crypto'; planKey = m[1]; }\nelse if ((m = cb.match(/^approve_(\\d+)_(.+)$/))) { action = 'approve'; targetUser = m[1]; planKey = m[2]; }\nelse if ((m = cb.match(/^reject_(\\d+)$/))) { action = 'reject'; targetUser = m[1]; }\nreturn [{ json: { action, telegramId, planKey, targetUser, chatId: $('Parse Update').item.json.chatId } }];\n"
+      },
+      "id": "d604bd4a-c864-4556-ab08-3955f7097527",
+      "name": "Parse Dynamic Callback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        1640
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "outputKey": "pay_zarinpal",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.action}}",
+                    "rightValue": "pay_zarinpal",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "pay_card",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.action}}",
+                    "rightValue": "pay_card",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "pay_crypto",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.action}}",
+                    "rightValue": "pay_crypto",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "approve",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.action}}",
+                    "rightValue": "approve",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "reject",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.action}}",
+                    "rightValue": "reject",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ],
+          "options": {
+            "fallbackOutput": "extra"
+          }
+        }
+      },
+      "id": "d2373f48-b802-4b2f-acc2-d5d4f481c7e0",
+      "name": "Dynamic Action Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        520,
+        1640
+      ]
+    },
+    {
+      "parameters": {
+        "content": "بخش E) پرداخت زرین‌پال — ساخت لینک پرداخت و وریفای از طریق Webhook.",
+        "height": 200,
+        "width": 420,
+        "color": 4
+      },
+      "id": "800ee655-13f0-43eb-b1bb-2eca27387358",
+      "name": "Note_4bfe4bf6",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.zarinpal.com/pg/v4/payment/request.json",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ merchant_id: $env.ZARINPAL_MERCHANT_ID, amount: $('Dynamic Action Router').item.json.planKey ? 0 : 0, callback_url: $env.N8N_BASE_URL + '/webhook/zarinpal-callback?uid=' + $json.telegramId + '&plan=' + $json.planKey, description: 'NovaTunnel' }) }}",
+        "options": {}
+      },
+      "id": "b1edf18c-5cc6-4d26-b042-31339ebc2058",
+      "name": "Zarinpal Request Payment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        800,
+        1560
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "=برای پرداخت روی دکمه زیر بزن:\nTap below to pay:",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        },
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            [
+              {
+                "text": "💳 پرداخت / Pay Now",
+                "url": "={{$json.data.authority ? 'https://www.zarinpal.com/pg/StartPay/' + $json.data.authority : '#'}}"
+              }
+            ]
+          ]
+        }
+      },
+      "id": "3cd71ea7-244b-4c50-a5bd-e83bfc3cc03c",
+      "name": "Send Zarinpal Pay Link",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1060,
+        1560
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "NovaTunnel Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "zarinpal-callback",
+        "httpMethod": "GET",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "ee98d4e9-074b-4155-9e95-477d7cc239e3",
+      "name": "Zarinpal Callback Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        800,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.zarinpal.com/pg/v4/payment/verify.json",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ merchant_id: $env.ZARINPAL_MERCHANT_ID, amount: $json.query.amount, authority: $json.query.Authority }) }}",
+        "options": {}
+      },
+      "id": "7ad66102-1c62-480e-abd5-0573c6c45baa",
+      "name": "Zarinpal Verify Payment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1060,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{$json.data.code}}",
+              "rightValue": "100",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "d05d034f-f12d-4fa1-a02f-caad2cdedcb6",
+      "name": "Zarinpal Verified?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1320,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const w = $('Zarinpal Callback Webhook').item.json.query; return [{ json: { telegramId: w.uid, planKey: w.plan } }];"
+      },
+      "id": "cf5b26ec-77ad-4917-8ddf-06e811bf2d32",
+      "name": "Parse Zarinpal Success Params",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1580,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "content": "بخش F) پرداخت کریپتو با Nowpayments — ساخت Invoice و دریافت IPN.",
+        "height": 200,
+        "width": 420,
+        "color": 4
+      },
+      "id": "ffc2d872-7d39-4e76-8ede-79db9987365e",
+      "name": "Note_38638cf4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        1080
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.nowpayments.io/v1/invoice",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{$env.NOWPAYMENTS_API_KEY}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ price_amount: 1, price_currency: 'usd', order_id: $json.telegramId + '_' + $json.planKey + '_' + Date.now(), order_description: 'NovaTunnel', ipn_callback_url: $env.N8N_BASE_URL + '/webhook/nowpayments-ipn' }) }}",
+        "options": {}
+      },
+      "id": "0d4bcfbb-cf82-4dab-a3e1-0b0b5c27bcf3",
+      "name": "Create Nowpayments Invoice",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        800,
+        1080
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "=برای پرداخت با ارز دیجیتال روی دکمه زیر بزن:\nTap to pay with crypto:",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        },
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            [
+              {
+                "text": "🪙 Pay with Crypto",
+                "url": "={{$json.invoice_url}}"
+              }
+            ]
+          ]
+        }
+      },
+      "id": "ac4f939b-a288-4d38-99c7-eacdafdcddb9",
+      "name": "Send Crypto Pay Link",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1060,
+        1080
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "NovaTunnel Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "nowpayments-ipn",
+        "httpMethod": "POST",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "94747026-fac6-49f9-a444-5e3fb9a3d73e",
+      "name": "Nowpayments IPN Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        800,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst crypto = require('crypto');\nconst body = $input.first().json;\nconst sorted = JSON.stringify(body, Object.keys(body).sort());\nconst expected = crypto.createHmac('sha512', $env.NOWPAYMENTS_IPN_SECRET).update(sorted).digest('hex');\nconst received = $('Nowpayments IPN Webhook').item.json.headers['x-nowpayments-sig'];\nreturn [{ json: { ...body, signatureValid: expected === received } }];\n"
+      },
+      "id": "b8ba0bc3-7dec-4176-be89-515407e94364",
+      "name": "Verify IPN HMAC Signature",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1060,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{$json.payment_status}}",
+              "rightValue": "finished",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "a80453ec-fc61-44fc-8536-6890a42dd485",
+      "name": "Nowpayments Status Finished?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1320,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const parts = String($json.order_id).split('_'); return [{ json: { telegramId: parts[0], planKey: parts[1] } }];"
+      },
+      "id": "c4827422-c711-457c-b68f-7ee04db0be7a",
+      "name": "Parse Nowpayments Success Params",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1580,
+        1160
+      ]
+    },
+    {
+      "parameters": {
+        "content": "بخش G) کارت به کارت — کاربر عکس رسید می‌فرسته، ادمین تایید/رد می‌کنه.",
+        "height": 200,
+        "width": 420,
+        "color": 4
+      },
+      "id": "3451c1e4-ff64-468e-a407-d2a569fa6335",
+      "name": "Note_cc3dbda0",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        1400
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "=💳 لطفاً مبلغ پلن رو به شماره کارت زیر واریز کن و عکس رسید رو همینجا بفرست:\n\n6219-8619-XXXX-XXXX\nبه نام: ...\n\nPlease transfer the amount and send a screenshot of the receipt here.",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "53e27137-4961-4730-8b09-af1fd1171508",
+      "name": "Ask For Receipt Photo",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1060,
+        1400
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "NovaTunnel Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "=🧾 رسید جدید از کاربر {{$('Parse Update').item.json.username}} ({{$('Parse Update').item.json.telegramId}})",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        },
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            [
+              {
+                "text": "✅ تایید",
+                "callbackData": "=approve_{{$('Parse Update').item.json.telegramId}}_plan_1m"
+              },
+              {
+                "text": "❌ رد",
+                "callbackData": "=reject_{{$('Parse Update').item.json.telegramId}}"
+              }
+            ]
+          ]
+        }
+      },
+      "id": "00b74d86-d330-450b-afb1-8fb4c4cc2c16",
+      "name": "Forward Receipt To Admin",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        260,
+        1480
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "NovaTunnel Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { telegramId: $json.targetUser, planKey: $json.planKey } }];"
+      },
+      "id": "7063f63d-ec49-410f-9b97-6636893a4c4d",
+      "name": "Parse Card Approve Params",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        1480
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "=❌ رسید پرداخت تایید نشد. لطفاً با پشتیبانی تماس بگیر.",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "f95a5c87-98a9-4f08-961b-f946554b60ca",
+      "name": "Send Rejection Notice",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        520,
+        1560
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "NovaTunnel Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "بخش H) فعال‌سازی روی پنل X-ui Sanaei — لاگین، ساخت کاربر، لینک کانفیگ، QR، ثبت در Supabase، پاداش رفرال.\nسه مسیر پرداخت موفق همگی اینجا به هم می‌رسند.",
+        "height": 240,
+        "width": 460,
+        "color": 6
+      },
+      "id": "95d9f5f4-ac70-427c-94ad-621498d5f6ab",
+      "name": "Note_56373218",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        1900
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst plans = {\n  plan_1m:  { months: 1,  gb: 30,  price: 150000, label_fa: '۱ ماهه', label_en: '1 Month' },\n  plan_3m:  { months: 3,  gb: 100, price: 390000, label_fa: '۳ ماهه', label_en: '3 Months' },\n  plan_6m:  { months: 6,  gb: 200, price: 690000, label_fa: '۶ ماهه', label_en: '6 Months' },\n  plan_12m: { months: 12, gb: 500, price: 1190000, label_fa: '۱ ساله', label_en: '1 Year' },\n};\nconst d = $json;\nreturn [{ json: { telegramId: d.telegramId, chatId: d.telegramId, planKey: d.planKey, plan: plans[d.planKey] } }];\n"
+      },
+      "id": "96d79b64-0f84-4d3f-b7cd-642f664b2506",
+      "name": "Lookup Plan By Key",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        1940
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://94.75.223.106:2053/login",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "username",
+              "value": "={{$env.XUI_ADMIN_USER}}"
+            },
+            {
+              "name": "password",
+              "value": "={{$env.XUI_ADMIN_PASS}}"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          },
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "515374e0-34e4-446f-b751-09e27bea7eb1",
+      "name": "X-UI Login",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        520,
+        1940
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst { randomUUID } = require('crypto');\nconst upstream = $('Lookup Plan By Key').item.json;\nconst plan = upstream.plan;\nconst clientUuid = randomUUID();\nconst email = 'nt_' + upstream.telegramId + '_' + Date.now();\nconst expiryMs = Date.now() + (plan.months * 30 * 24 * 60 * 60 * 1000);\nreturn [{ json: { clientUuid, email, expiryMs, trafficGB: plan.gb, telegramId: upstream.telegramId, planKey: upstream.planKey, plan } }];\n"
+      },
+      "id": "7aeb22f3-8b91-42d7-9e3e-e81f14308b26",
+      "name": "Generate Client UUID+Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        780,
+        1940
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://94.75.223.106:2053/panel/api/inbounds/addClient",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Cookie",
+              "value": "={{'session=' + $('X-UI Login').item.json.headers['set-cookie']}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ id: $env.XUI_INBOUND_ID, settings: JSON.stringify({ clients: [{ id: $json.clientUuid, email: $json.email, totalGB: $json.trafficGB * 1024 * 1024 * 1024, expiryTime: $json.expiryMs, enable: true }] }) }) }}",
+        "options": {}
+      },
+      "id": "8b8f72b7-dcee-4a1d-b94a-329577f88320",
+      "name": "X-UI Add Client",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1040,
+        1940
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst d = $('Generate Client UUID+Email').item.json;\nconst host = $env.XUI_PANEL_DOMAIN || '94.75.223.106';\nconst port = $env.XUI_VLESS_PORT || '443';\nconst vlessLink = `vless://${d.clientUuid}@${host}:${port}?security=tls&type=tcp#NovaTunnel-${d.email}`;\nreturn [{ json: { ...d, vlessLink } }];\n"
+      },
+      "id": "4993dd1d-53c3-47e7-996d-1c4c7282411e",
+      "name": "Build Config Links",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        1940
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.qrserver.com/v1/create-qr-code/?size=400x400&data={{encodeURIComponent($json.vlessLink)}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "1cbdfbe0-0a87-484b-907a-8f41592fe792",
+      "name": "Generate QR Code",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1560,
+        1940
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendPhoto",
+        "chatId": "={{$('Build Config Links').item.json.telegramId}}",
+        "binaryData": true,
+        "binaryPropertyName": "data",
+        "additionalFields": {
+          "caption": "=🎉 اشتراکت فعال شد!\n\n🔗 لینک کانفیگ:\n{{$('Build Config Links').item.json.vlessLink}}\n\n📅 مدت: {{$('Build Config Links').item.json.plan.label_fa}}\n📊 ترافیک: {{$('Build Config Links').item.json.trafficGB}} گیگ"
+        }
+      },
+      "id": "479a9a46-6fc0-46f8-b7f4-236eab1ad857",
+      "name": "Send Config + QR to User",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1820,
+        1940
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "NovaTunnel Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/subscriptions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.SUPABASE_SERVICE_KEY}}"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": {
+          "telegram_id": "={{$('Build Config Links').item.json.telegramId}}",
+          "plan_key": "={{$('Build Config Links').item.json.planKey}}",
+          "client_uuid": "={{$('Build Config Links').item.json.clientUuid}}",
+          "expiry_at": "={{new Date($('Build Config Links').item.json.expiryMs).toISOString()}}",
+          "traffic_gb": "={{$('Build Config Links').item.json.trafficGB}}",
+          "price_paid": "={{$('Build Config Links').item.json.plan.price}}",
+          "created_at": "={{$now.toISO()}}"
+        }
+      },
+      "id": "4a502571-1d61-4cf5-b3e5-aefefe236e14",
+      "name": "Insert Subscription Record",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2080,
+        1940
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst RATES = [0.10, 0.05, 0.02];\nconst buyerId = $json.telegram_id;\nconst planPrice = $json.price_paid;\nreturn [{ json: { buyerId, planPrice, rates: RATES } }];\n"
+      },
+      "id": "e6e1a8a4-6695-4456-88b4-e02fc1760246",
+      "name": "Calculate 3-Tier Referral Bonus",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        2100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/users",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.SUPABASE_SERVICE_KEY}}"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "telegram_id",
+              "value": "=eq.{{$json.buyerId}}"
+            },
+            {
+              "name": "select",
+              "value": "referrer_id"
+            }
+          ]
+        }
+      },
+      "id": "04b63d08-469b-435c-9b08-c24bebaee88a",
+      "name": "Get Referrer Chain",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        520,
+        2100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/point_ledger",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.SUPABASE_SERVICE_KEY}}"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": {
+          "user_id": "={{$json.referrer_id}}",
+          "amount": "={{Math.round($('Calculate 3-Tier Referral Bonus').item.json.planPrice * $('Calculate 3-Tier Referral Bonus').item.json.rates[0])}}",
+          "tier": 1,
+          "status": "hold",
+          "release_at": "={{new Date(Date.now() + 24*60*60*1000).toISOString()}}",
+          "created_at": "={{$now.toISO()}}"
+        }
+      },
+      "id": "e77ade7e-248c-4fa1-8bcb-3027202fda23",
+      "name": "Insert Point Ledger (24h hold)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        780,
+        2100
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "=💰 خرید جدید!\nکاربر: {{$('Build Config Links').item.json.telegramId}}\nپلن: {{$('Build Config Links').item.json.plan.label_fa}}\nمبلغ: {{$('Build Config Links').item.json.plan.price}} تومان",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "818bd115-0beb-4ba8-827b-aca4cbebf28c",
+      "name": "Notify Admin New Purchase",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1040,
+        2100
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "NovaTunnel Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "بخش I) /myaccount — نمایش اشتراک‌های فعال و ترافیک باقیمانده.",
+        "height": 200,
+        "width": 420,
+        "color": 4
+      },
+      "id": "2e93fc1e-7569-45b2-b787-dcbca402a04e",
+      "name": "Note_41123e8b",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        2320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/subscriptions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.SUPABASE_SERVICE_KEY}}"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "telegram_id",
+              "value": "=eq.{{$json.telegramId}}"
+            },
+            {
+              "name": "order",
+              "value": "expiry_at.desc"
+            }
+          ]
+        }
+      },
+      "id": "27af43de-4771-4e37-86ff-9262993783f9",
+      "name": "Get User Subscriptions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        2360
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst subs = $input.all().map(i => i.json);\nconst lines = subs.map(s => `• ${s.plan_key} | انقضا: ${new Date(s.expiry_at).toLocaleDateString('fa-IR')} | ${s.traffic_gb} گیگ`);\nconst text = subs.length ? '📦 اشتراک‌های تو:\\n' + lines.join('\\n') : 'هنوز هیچ اشتراکی نداری. از منوی اصلی خرید کن!';\nreturn [{ json: { chatId: $('Parse Update').item.json.chatId, text } }];\n"
+      },
+      "id": "df6b85dd-83fb-40e5-9c79-f9bdeb452df2",
+      "name": "Format Account Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        2360
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "={{$json.text}}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "2d29b25a-5f2a-4807-9e10-c41fa53d7ddc",
+      "name": "Send Account Summary",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        780,
+        2360
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "NovaTunnel Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "بخش J) کیف پول، رفرال، پشتیبانی و درباره ما.",
+        "height": 200,
+        "width": 420,
+        "color": 4
+      },
+      "id": "5767e40f-bcb3-4907-8d92-049e633296be",
+      "name": "Note_49bcad7d",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        2540
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/point_ledger",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.SUPABASE_SERVICE_KEY}}"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "user_id",
+              "value": "=eq.{{$('Parse Update').item.json.telegramId}}"
+            }
+          ]
+        }
+      },
+      "id": "cc7331e7-8d2c-4437-a0e7-b3661a0e4e9e",
+      "name": "Get Wallet + Points",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        2580
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "=💳 موجودی کیف پول و Nova Points تو در حال محاسبه است (بر اساس داده Supabase).",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "3b67c496-1b35-41e6-864a-1bc007f44139",
+      "name": "Send Wallet Info",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        520,
+        2580
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "NovaTunnel Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst id = $('Parse Update').item.json.telegramId;\nconst link = `https://t.me/NovaTunnelBot?start=ref_${id}`;\nreturn [{ json: { chatId: $('Parse Update').item.json.chatId, text: `📣 لینک دعوت اختصاصی تو:\\n${link}\\n\\nبه ازای هر دوست که با این لینک خرید کنه، پورسانت می‌گیری!` } }];\n"
+      },
+      "id": "67e0025f-6fff-44ac-870b-7ab48f5e0e83",
+      "name": "Build Referral Link",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        2700
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "={{$json.text}}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "42644d82-a26c-4c42-87f9-05f35b386051",
+      "name": "Send Referral Info",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        520,
+        2700
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "NovaTunnel Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "=📞 پشتیبانی: @novatunnel_support\nساعات پاسخگویی: ۹ تا ۲۳",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "96ea562e-8965-42fc-b29e-3f4ae2618cbe",
+      "name": "Send Support Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        260,
+        2820
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "NovaTunnel Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "=ℹ️ NovaTunnel\nکانال: https://t.me/novatunnelch\nاینستاگرام: https://www.instagram.com/novatunnel",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "fab6aab5-6314-43ba-a1a0-a05d43f3ba65",
+      "name": "Send About Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        520,
+        2820
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "NovaTunnel Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "بخش K) پنل ادمین — آمار، تایید پرداخت‌های دستی، اطلاع‌رسانی همگانی. محدود به ADMIN_TELEGRAM_ID.",
+        "height": 220,
+        "width": 420,
+        "color": 4
+      },
+      "id": "5464496b-22ef-4357-9fc3-a93146dd4858",
+      "name": "Note_cedb0edf",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        2980
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{$json.telegramId}}",
+              "rightValue": "={{$env.ADMIN_TELEGRAM_ID}}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "7c5fa236-9d43-44c7-9e4e-cedef1dd5ded",
+      "name": "Is Admin?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        260,
+        3020
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "=🛠 پنل مدیریت",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        },
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            [
+              {
+                "text": "📊 آمار کلی",
+                "callbackData": "admin_stats"
+              }
+            ],
+            [
+              {
+                "text": "🧾 پرداخت‌های در انتظار",
+                "callbackData": "admin_pending"
+              }
+            ],
+            [
+              {
+                "text": "📢 پیام همگانی",
+                "callbackData": "admin_broadcast"
+              }
+            ]
+          ]
+        }
+      },
+      "id": "ca5b4329-a35c-46b3-8257-4437ca065579",
+      "name": "Send Admin Menu",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        520,
+        2980
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "NovaTunnel Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "=⛔ دسترسی نداری.",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "eb827534-40ec-4f5b-b165-8c90656d1f26",
+      "name": "Send Access Denied",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        520,
+        3100
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "NovaTunnel Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/rpc/get_dashboard_stats",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.SUPABASE_SERVICE_KEY}}"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e2e7dfcf-0f23-4d2a-8e5c-07e4aba4e8b5",
+      "name": "Get Stats Aggregate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        3200
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "=📊 کل کاربران: {{$json.total_users}}\nاشتراک فعال: {{$json.active_subs}}\nدرآمد این ماه: {{$json.monthly_revenue}} تومان",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "9859cf27-d479-41c8-9d86-0634c8c73212",
+      "name": "Send Stats",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        520,
+        3200
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "NovaTunnel Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/subscriptions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.SUPABASE_SERVICE_KEY}}"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "status",
+              "value": "eq.pending"
+            }
+          ]
+        }
+      },
+      "id": "f3690c33-ad14-4336-a8fb-7a504d735a13",
+      "name": "Get Pending Receipts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        780,
+        3200
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "=🧾 پرداخت‌های در انتظار تایید: {{$json.length}} مورد",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "0a9c3d8b-3589-404d-b110-42d2e70c865e",
+      "name": "Send Pending List",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1040,
+        3200
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "NovaTunnel Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/users",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.SUPABASE_SERVICE_KEY}}"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "telegram_id"
+            }
+          ]
+        }
+      },
+      "id": "f9e9bdd9-1f8f-4dc4-99c8-751cf7ef24e2",
+      "name": "Get All User IDs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        520,
+        3320
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 25,
+        "options": {}
+      },
+      "id": "7355fad2-6327-426a-8df8-7c0a99bb4680",
+      "name": "Split In Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        780,
+        3320
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "=پیام همگانی",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "4b79e058-2be4-447b-b97d-5cddb3c4eb54",
+      "name": "Broadcast Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1040,
+        3320
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "NovaTunnel Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "بخش L) یادآوری انقضا — هر روز اجرا می‌شود، ۳ روز قبل و روز انقضا پیام می‌فرستد.",
+        "height": 200,
+        "width": 420,
+        "color": 4
+      },
+      "id": "ba8f3c65-49f3-4310-932b-697120e6ab8f",
+      "name": "Note_5c628fa1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        3520
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "ca66fa19-09a8-44f9-9b8a-862c4607d29f",
+      "name": "Daily Schedule (09:00)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        3560
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/subscriptions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.SUPABASE_SERVICE_KEY}}"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation,resolution=merge-duplicates"
+            }
+          ]
+        },
+        "options": {},
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "expiry_at",
+              "value": "=lte.{{new Date(Date.now()+3*24*60*60*1000).toISOString()}}"
+            },
+            {
+              "name": "status",
+              "value": "eq.active"
+            }
+          ]
+        }
+      },
+      "id": "11ae7f65-91e6-441d-b9df-c3d0e9e950ff",
+      "name": "Get Expiring Subscriptions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        3560
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst items = $input.all().map(i => i.json);\nconst now = Date.now();\nreturn items.map(s => {\n  const remainMs = new Date(s.expiry_at).getTime() - now;\n  const isToday = remainMs <= 24*60*60*1000;\n  return { json: { ...s, isToday } };\n});\n"
+      },
+      "id": "ed0be475-8fdc-47f5-9553-b6ecd546529d",
+      "name": "Split 3-Day vs Today Reminders",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        3560
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{$json.isToday}}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "c60300e9-feff-4c93-b2e3-886f7c8d8b3f",
+      "name": "Is Today?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        780,
+        3560
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "=⏰ اشتراکت امروز تموم میشه! برای تمدید کلیک کن:",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        },
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            [
+              {
+                "text": "🔁 تمدید",
+                "callbackData": "buy_plan"
+              }
+            ]
+          ]
+        }
+      },
+      "id": "8b0c729d-3b52-47a3-ad6e-597220ebe315",
+      "name": "Send Expiry-Day Reminder",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1040,
+        3500
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "NovaTunnel Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chatId}}",
+        "text": "=⏰ تا ۳ روز دیگه اشتراکت تموم میشه. همین الان تمدید کن:",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        },
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            [
+              {
+                "text": "🔁 تمدید",
+                "callbackData": "buy_plan"
+              }
+            ]
+          ]
+        }
+      },
+      "id": "f12eff30-b98c-4d8c-98fe-ce065c026e35",
+      "name": "Send 3-Day Reminder",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1040,
+        3640
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "NovaTunnel Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://94.75.223.106:2053/panel/api/inbounds/{{$env.XUI_INBOUND_ID}}/delClient/{{$json.client_uuid}}",
+        "options": {}
+      },
+      "id": "b5bf9fb2-77b7-4a26-81e2-9dd9ccf73d8a",
+      "name": "X-UI Disable Expired Client",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1300,
+        3500
+      ]
+    },
+    {
+      "parameters": {
+        "content": "بخش M) خطایابی\nروی همه نودهای HTTP Request گزینه «Retry On Fail» با ۳ تلاش فعال کن. یک Error Trigger Workflow جدا بساز که پیام خطا رو به ادمین بفرسته (در راهنما توضیح داده شده).",
+        "height": 220,
+        "width": 460,
+        "color": 3
+      },
+      "id": "714c5352-da11-481a-8d4e-e38b2a000fa5",
+      "name": "Note_e6c6f005",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        3780
+      ]
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Update": {
+      "main": [
+        [
+          {
+            "node": "Route Update Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Update Type": {
+      "main": [
+        [
+          {
+            "node": "Check Channel Membership",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get User Record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get User Subscriptions",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Admin?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Forward Receipt To Admin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Channel Membership": {
+      "main": [
+        [
+          {
+            "node": "Is Member?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Member?": {
+      "main": [
+        [
+          {
+            "node": "Upsert User",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Join Required Message",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Upsert User": {
+      "main": [
+        [
+          {
+            "node": "Send Language Selection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User Record": {
+      "main": [
+        [
+          {
+            "node": "Callback Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Callback Router": {
+      "main": [
+        [
+          {
+            "node": "Save Language Choice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save Language Choice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Channel Membership",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Show Plan Tiers",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get User Subscriptions",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get User Subscriptions",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Wallet + Points",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Support Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Referral Link",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send About Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Main Menu Text+Buttons",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Calculate Plan Price+Traffic",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Calculate Plan Price+Traffic",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Calculate Plan Price+Traffic",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Calculate Plan Price+Traffic",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [
+          {
+            "node": "Parse Dynamic Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Language Choice": {
+      "main": [
+        [
+          {
+            "node": "Build Main Menu Text+Buttons",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Main Menu Text+Buttons": {
+      "main": [
+        [
+          {
+            "node": "Send Main Menu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Plan Price+Traffic": {
+      "main": [
+        [
+          {
+            "node": "Show Payment Methods",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Dynamic Callback": {
+      "main": [
+        [
+          {
+            "node": "Dynamic Action Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dynamic Action Router": {
+      "main": [
+        [
+          {
+            "node": "Zarinpal Request Payment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ask For Receipt Photo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Nowpayments Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Parse Card Approve Params",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Rejection Notice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zarinpal Request Payment": {
+      "main": [
+        [
+          {
+            "node": "Send Zarinpal Pay Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zarinpal Callback Webhook": {
+      "main": [
+        [
+          {
+            "node": "Zarinpal Verify Payment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zarinpal Verify Payment": {
+      "main": [
+        [
+          {
+            "node": "Zarinpal Verified?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zarinpal Verified?": {
+      "main": [
+        [
+          {
+            "node": "Parse Zarinpal Success Params",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Nowpayments Invoice": {
+      "main": [
+        [
+          {
+            "node": "Send Crypto Pay Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nowpayments IPN Webhook": {
+      "main": [
+        [
+          {
+            "node": "Verify IPN HMAC Signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify IPN HMAC Signature": {
+      "main": [
+        [
+          {
+            "node": "Nowpayments Status Finished?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nowpayments Status Finished?": {
+      "main": [
+        [
+          {
+            "node": "Parse Nowpayments Success Params",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Zarinpal Success Params": {
+      "main": [
+        [
+          {
+            "node": "Lookup Plan By Key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Nowpayments Success Params": {
+      "main": [
+        [
+          {
+            "node": "Lookup Plan By Key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Card Approve Params": {
+      "main": [
+        [
+          {
+            "node": "Lookup Plan By Key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Plan By Key": {
+      "main": [
+        [
+          {
+            "node": "X-UI Login",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "X-UI Login": {
+      "main": [
+        [
+          {
+            "node": "Generate Client UUID+Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Client UUID+Email": {
+      "main": [
+        [
+          {
+            "node": "X-UI Add Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "X-UI Add Client": {
+      "main": [
+        [
+          {
+            "node": "Build Config Links",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Config Links": {
+      "main": [
+        [
+          {
+            "node": "Generate QR Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate QR Code": {
+      "main": [
+        [
+          {
+            "node": "Send Config + QR to User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Config + QR to User": {
+      "main": [
+        [
+          {
+            "node": "Insert Subscription Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Subscription Record": {
+      "main": [
+        [
+          {
+            "node": "Calculate 3-Tier Referral Bonus",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate 3-Tier Referral Bonus": {
+      "main": [
+        [
+          {
+            "node": "Get Referrer Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Referrer Chain": {
+      "main": [
+        [
+          {
+            "node": "Insert Point Ledger (24h hold)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Point Ledger (24h hold)": {
+      "main": [
+        [
+          {
+            "node": "Notify Admin New Purchase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User Subscriptions": {
+      "main": [
+        [
+          {
+            "node": "Format Account Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Account Summary": {
+      "main": [
+        [
+          {
+            "node": "Send Account Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Wallet + Points": {
+      "main": [
+        [
+          {
+            "node": "Send Wallet Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Referral Link": {
+      "main": [
+        [
+          {
+            "node": "Send Referral Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Admin?": {
+      "main": [
+        [
+          {
+            "node": "Send Admin Menu",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Access Denied",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Get Stats Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Send Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Pending Receipts": {
+      "main": [
+        [
+          {
+            "node": "Send Pending List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All User IDs": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split In Batches": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Broadcast Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Broadcast Message": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Schedule (09:00)": {
+      "main": [
+        [
+          {
+            "node": "Get Expiring Subscriptions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Expiring Subscriptions": {
+      "main": [
+        [
+          {
+            "node": "Split 3-Day vs Today Reminders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split 3-Day vs Today Reminders": {
+      "main": [
+        [
+          {
+            "node": "Is Today?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Today?": {
+      "main": [
+        [
+          {
+            "node": "Send Expiry-Day Reminder",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send 3-Day Reminder",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Send Expiry-Day Reminder": {
+      "main": [
+        [
+          {
+            "node": "X-UI Disable Expired Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
