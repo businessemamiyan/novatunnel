@@ -27,6 +27,6 @@ Thumbs.db
 backups/
 
 # Real credentials dumps — never track these
-moshakhasat.md
+اطلاعات-محرمانه-سرورها.md
 get_session.py
 ig_session.json
