@@ -43,6 +43,17 @@ class AgentExpenseCreate(BaseModel):
     category: str | None = None
 
 
+class AgentCardCreate(BaseModel):
+    card_number: str
+    card_holder: str
+
+
+class AgentCardUpdate(BaseModel):
+    card_number: str
+    card_holder: str
+    is_active: bool
+
+
 def _serialize_expense(e):
     return {
         "id": str(e["id"]),
@@ -243,6 +254,46 @@ async def remove_agent_expense(expense_id: str, user: dict = Depends(get_current
         raise HTTPException(403, "شما نماینده نیستید")
 
     await db.delete_expense(expense_id, db_user["id"])
+    return {"ok": True}
+
+
+async def _require_agent(user: dict):
+    db_user = await db.get_user_by_telegram_id(user["telegram_id"])
+    if db_user is None:
+        raise HTTPException(404, "کاربر پیدا نشد")
+    agent = await db.get_agent_info(db_user["id"])
+    if agent is None:
+        raise HTTPException(403, "شما نماینده نیستید")
+    return db_user
+
+
+@router.get("/payment-cards")
+async def list_agent_cards(user: dict = Depends(get_current_user)):
+    db_user = await _require_agent(user)
+    rows = await db.get_all_payment_cards(db_user["id"])
+    return [dict(r) for r in rows]
+
+
+@router.post("/payment-cards")
+async def create_agent_card(body: AgentCardCreate, user: dict = Depends(get_current_user)):
+    db_user = await _require_agent(user)
+    card = await db.create_payment_card(body.card_number, body.card_holder, db_user["id"])
+    return dict(card)
+
+
+@router.patch("/payment-cards/{card_id}")
+async def update_agent_card(card_id: int, body: AgentCardUpdate, user: dict = Depends(get_current_user)):
+    db_user = await _require_agent(user)
+    card = await db.update_payment_card(card_id, body.card_number, body.card_holder, body.is_active, db_user["id"])
+    if card is None:
+        raise HTTPException(404, "not found")
+    return dict(card)
+
+
+@router.delete("/payment-cards/{card_id}")
+async def delete_agent_card(card_id: int, user: dict = Depends(get_current_user)):
+    db_user = await _require_agent(user)
+    await db.delete_payment_card(card_id, db_user["id"])
     return {"ok": True}
 
 

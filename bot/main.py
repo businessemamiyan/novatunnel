@@ -11,7 +11,7 @@ from aiogram.types import Message
 
 import config
 from shared import db, marzban, notify
-from handlers import start, menu, purchase, admin, admin_panel, support, services, wallet, smart_chat
+from handlers import start, menu, purchase, admin, admin_panel, support, services, wallet, smart_chat, agent_approval
 
 # ثبت اول از همه تا هیچ روتر/فیلتر دیگری (مثل IsAdmin() در روترهای ادمین) قبل از آن پیام Contact را نبیند
 priority_contact_router = Router()
@@ -71,6 +71,7 @@ async def main():
 
     dp.include_router(priority_contact_router)
     dp.include_router(admin.router)
+    dp.include_router(agent_approval.router)
     dp.include_router(admin_panel.router)
     dp.include_router(support.router)
     dp.include_router(start.router)

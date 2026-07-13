@@ -33,6 +33,14 @@ async def sales_stats(admin: dict = Depends(get_current_admin)):
     return _serialize_sales(dict(row))
 
 
+@router.get("/other-revenue")
+async def other_revenue(admin: dict = Depends(get_current_admin)):
+    """پول واقعی دریافتی خارج از خرید بسته: هزینه فعال‌سازی/ارتقای نمایندگی و شارژ کیف‌پول."""
+    activation = _serialize_sales(dict(await db.get_agency_activation_revenue_stats()))
+    topup = _serialize_sales(dict(await db.get_wallet_topup_revenue_stats()))
+    return {"agency_activation": activation, "wallet_topup": topup}
+
+
 @router.get("/expenses")
 async def list_expenses(admin: dict = Depends(get_current_admin)):
     rows = await db.get_expenses(None)
@@ -65,10 +73,20 @@ async def remove_expense(expense_id: str, admin: dict = Depends(get_current_admi
 @router.get("/summary")
 async def summary(admin: dict = Depends(get_current_admin)):
     sales = await db.get_sales_stats_by_scope(None)
+    activation = await db.get_agency_activation_revenue_stats()
+    topup = await db.get_wallet_topup_revenue_stats()
     total_expenses = int(await db.get_expense_total(None))
+
     total_sales = int(sales["total_sales"])
+    activation_total = int(activation["total"])
+    topup_total = int(topup["total"])
+    total_revenue = total_sales + activation_total + topup_total
+
     return {
         "total_sales": total_sales,
+        "agency_activation_total": activation_total,
+        "wallet_topup_total": topup_total,
+        "total_revenue": total_revenue,
         "total_expenses": total_expenses,
-        "net_profit": total_sales - total_expenses,
+        "net_profit": total_revenue - total_expenses,
     }

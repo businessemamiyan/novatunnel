@@ -20,20 +20,20 @@ class CardUpdate(BaseModel):
 
 @router.get("")
 async def list_cards(admin: dict = Depends(get_current_admin)):
-    rows = await db.get_all_payment_cards()
+    rows = await db.get_all_payment_cards(None)
     return [dict(r) for r in rows]
 
 
 @router.post("")
 async def create_card(body: CardCreate, admin: dict = Depends(get_current_admin)):
-    card = await db.create_payment_card(body.card_number, body.card_holder)
+    card = await db.create_payment_card(body.card_number, body.card_holder, None)
     await db.log_admin_action(admin["telegram_id"], "payment_card_create", None, {"card_number": body.card_number})
     return dict(card)
 
 
 @router.patch("/{card_id}")
 async def update_card(card_id: int, body: CardUpdate, admin: dict = Depends(get_current_admin)):
-    card = await db.update_payment_card(card_id, body.card_number, body.card_holder, body.is_active)
+    card = await db.update_payment_card(card_id, body.card_number, body.card_holder, body.is_active, None)
     if card is None:
         raise HTTPException(404, "not found")
     await db.log_admin_action(admin["telegram_id"], "payment_card_update", f"card {card_id}", {})
@@ -42,6 +42,6 @@ async def update_card(card_id: int, body: CardUpdate, admin: dict = Depends(get_
 
 @router.delete("/{card_id}")
 async def delete_card(card_id: int, admin: dict = Depends(get_current_admin)):
-    await db.delete_payment_card(card_id)
+    await db.delete_payment_card(card_id, None)
     await db.log_admin_action(admin["telegram_id"], "payment_card_delete", f"card {card_id}")
     return {"ok": True}

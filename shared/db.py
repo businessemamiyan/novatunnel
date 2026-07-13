@@ -514,16 +514,14 @@ async def set_agent_plan_price(agent_id, package_id: int, price_toman: int):
     if package is None:
         raise ValueError("بسته پیدا نشد")
 
+    # سقف فروش نماینده «آزاد» است (بخش ۷ سند قوانین) — فقط کف مطلق ۴۰۰۰ تومان/گیگ اعمال می‌شود،
+    # نه یک سقف نسبی به هزینه خرید (آن نسخه قبلی برای رده‌های ارزان‌تر مثل برلیان محدوده غیرممکن می‌ساخت).
     wholesale_cost = float(package["volume_gb"]) * float(agent["purchase_rate_toman_per_gb"])
-    max_markup_percent = await get_system_setting("agent_custom_pricing_max_markup_percent")
-    max_price = wholesale_cost * (1 + max_markup_percent / 100)
     floor_per_gb = await get_system_setting("min_resale_price_toman_per_gb")
     min_price = max(wholesale_cost, float(package["volume_gb"]) * floor_per_gb)
 
     if price_toman < min_price:
-        raise ValueError(f"قیمت نباید کمتر از {min_price:,.0f} تومان (هزینه خرید شما) باشد")
-    if price_toman > max_price:
-        raise ValueError(f"قیمت نباید بیشتر از {max_price:,.0f} تومان (سقف مجاز) باشد")
+        raise ValueError(f"قیمت نباید کمتر از {min_price:,.0f} تومان (کف مجاز فروش) باشد")
 
     return await pool().fetchrow(
         """
@@ -548,30 +546,42 @@ async def get_purchase_by_authority(authority: str):
     return await pool().fetchrow("select * from purchases where gateway_authority = $1", authority)
 
 
-async def get_all_payment_cards():
-    return await pool().fetch("select * from payment_cards order by id")
-
-
-async def create_payment_card(card_number: str, card_holder: str):
-    return await pool().fetchrow(
-        "insert into payment_cards (card_number, card_holder) values ($1, $2) returning *",
-        card_number, card_holder,
+async def get_all_payment_cards(agent_id=None):
+    """agent_id=None → کارت‌های مالک/ادمین؛ مقداردار → فقط کارت‌های همان نماینده."""
+    return await pool().fetch(
+        "select * from payment_cards where agent_id is not distinct from $1 order by id", agent_id
     )
 
 
-async def update_payment_card(card_id: int, card_number: str, card_holder: str, is_active: bool):
+async def create_payment_card(card_number: str, card_holder: str, agent_id=None):
     return await pool().fetchrow(
-        "update payment_cards set card_number = $2, card_holder = $3, is_active = $4 where id = $1 returning *",
-        card_id, card_number, card_holder, is_active,
+        "insert into payment_cards (card_number, card_holder, agent_id) values ($1, $2, $3) returning *",
+        card_number, card_holder, agent_id,
     )
 
 
-async def delete_payment_card(card_id: int):
-    await pool().execute("delete from payment_cards where id = $1", card_id)
+async def update_payment_card(card_id: int, card_number: str, card_holder: str, is_active: bool, agent_id=None):
+    return await pool().fetchrow(
+        """
+        update payment_cards set card_number = $2, card_holder = $3, is_active = $4
+        where id = $1 and agent_id is not distinct from $5
+        returning *
+        """,
+        card_id, card_number, card_holder, is_active, agent_id,
+    )
 
 
-async def get_random_payment_card():
-    return await pool().fetchrow("select * from payment_cards where is_active order by random() limit 1")
+async def delete_payment_card(card_id: int, agent_id=None):
+    await pool().execute(
+        "delete from payment_cards where id = $1 and agent_id is not distinct from $2", card_id, agent_id
+    )
+
+
+async def get_random_payment_card(agent_id=None):
+    return await pool().fetchrow(
+        "select * from payment_cards where is_active and agent_id is not distinct from $1 order by random() limit 1",
+        agent_id,
+    )
 
 
 async def create_wallet_topup_request(user_id, amount_toman):
@@ -1025,6 +1035,45 @@ async def get_wallet_cost_stats(user_id, tx_type: str):
         where user_id = $1 and type = $2::wallet_tx_type
         """,
         user_id, tx_type,
+    )
+
+
+async def get_agency_activation_revenue_stats():
+    """پول واقعی دریافتی بابت فعال‌سازی/ارتقای نمایندگی — طبق بخش ۶.۲ به کیف‌پول واریز نمی‌شود،
+    پس فقط از همین جدول قابل ردیابی است؛ بدون این، در حسابداری ادمین اصلاً دیده نمی‌شد."""
+    return await pool().fetchrow(
+        """
+        select
+          coalesce(sum(activation_fee_toman), 0) as total,
+          coalesce(sum(activation_fee_toman) filter (
+            where (confirmed_at at time zone 'Asia/Tehran')::date = (now() at time zone 'Asia/Tehran')::date
+          ), 0) as today,
+          coalesce(sum(activation_fee_toman) filter (where confirmed_at >= now() - interval '7 days'), 0) as week,
+          coalesce(sum(activation_fee_toman) filter (
+            where (confirmed_at at time zone 'Asia/Tehran') >= date_trunc('month', now() at time zone 'Asia/Tehran')
+          ), 0) as month
+        from agency_activation_requests
+        where status = 'confirmed'
+        """
+    )
+
+
+async def get_wallet_topup_revenue_stats():
+    """پول واقعی دریافتی بابت شارژ کیف‌پول (کارت‌به‌کارت/آنلاین) — قبلاً در هیچ‌کجای حسابداری ادمین لحاظ نمی‌شد."""
+    return await pool().fetchrow(
+        """
+        select
+          coalesce(sum(amount_toman), 0) as total,
+          coalesce(sum(amount_toman) filter (
+            where (confirmed_at at time zone 'Asia/Tehran')::date = (now() at time zone 'Asia/Tehran')::date
+          ), 0) as today,
+          coalesce(sum(amount_toman) filter (where confirmed_at >= now() - interval '7 days'), 0) as week,
+          coalesce(sum(amount_toman) filter (
+            where (confirmed_at at time zone 'Asia/Tehran') >= date_trunc('month', now() at time zone 'Asia/Tehran')
+          ), 0) as month
+        from wallet_topup_requests
+        where status = 'confirmed'
+        """
     )
 
 

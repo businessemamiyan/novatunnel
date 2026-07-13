@@ -102,7 +102,9 @@ async def create_purchase(body: PurchaseCreate, user: dict = Depends(get_current
         await purchase_service.approve_purchase(purchase["id"], user["telegram_id"])
         return {"id": str(purchase["id"]), "status": "auto_approved", "final_price": 0}
 
-    card_number, card_holder = await purchase_service.get_payment_card()
+    card_number, card_holder = await purchase_service.get_payment_card(
+        binding["agent_id"] if binding else None
+    )
     return {
         "id": str(purchase["id"]),
         "status": "awaiting_receipt",
@@ -191,19 +193,33 @@ async def upload_purchase_receipt(purchase_id: str, file: UploadFile = File(...)
         f"مبلغ: {int(purchase['price_toman']):,} تومان\n"
         f"شناسه خرید: {purchase['id']}"
     )
-    keyboard = {
-        "inline_keyboard": [[
-            {"text": "✅ تایید پرداخت", "callback_data": f"approve:{purchase_id}"},
-            {"text": "❌ رد کردن", "callback_data": f"reject:{purchase_id}"},
-        ]]
-    }
-    admin_ids = await db.get_all_active_admin_ids()
+
+    # مشتری متصل به لینک اختصاصی یک نماینده — پول مستقیم به کارت نماینده رفته، پس فقط خودِ همان نماینده
+    # باید تایید/رد کند (نه ادمین‌های مالک که اصلاً این پول را دریافت نکرده‌اند).
+    if purchase["seller_type"] == "agent" and purchase["seller_agent_id"]:
+        agent_user = await db.get_user_by_id(purchase["seller_agent_id"])
+        recipient_ids = [agent_user["telegram_id"]] if agent_user else []
+        keyboard = {
+            "inline_keyboard": [[
+                {"text": "✅ تایید پرداخت", "callback_data": f"agent_approve:{purchase_id}"},
+                {"text": "❌ رد کردن", "callback_data": f"agent_reject:{purchase_id}"},
+            ]]
+        }
+    else:
+        recipient_ids = await db.get_all_active_admin_ids()
+        keyboard = {
+            "inline_keyboard": [[
+                {"text": "✅ تایید پرداخت", "callback_data": f"approve:{purchase_id}"},
+                {"text": "❌ رد کردن", "callback_data": f"reject:{purchase_id}"},
+            ]]
+        }
+
     file_id = None
     async with httpx.AsyncClient(timeout=30) as client:
-        for admin_id in admin_ids:
+        for chat_id in recipient_ids:
             resp = await client.post(
                 f"{TELEGRAM_API}/sendPhoto",
-                data={"chat_id": admin_id, "caption": caption, "reply_markup": json.dumps(keyboard)},
+                data={"chat_id": chat_id, "caption": caption, "reply_markup": json.dumps(keyboard)},
                 files={"photo": ("receipt.jpg", photo_bytes, file.content_type or "image/jpeg")},
             )
             result = resp.json()

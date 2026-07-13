@@ -17,9 +17,15 @@ PAYMENT_SAFETY_NOTICE = (
 )
 
 
-async def get_payment_card() -> tuple[str, str]:
-    """یکی از کارت‌های فعال را تصادفی برمی‌گرداند تا حجم تراکنش‌ها بین چند کارت پخش شود؛
-    اگر هیچ کارتی در پنل ثبت نشده باشد، به متغیر محیطی پیش‌فرض برمی‌گردد."""
+async def get_payment_card(agent_id=None) -> tuple[str, str]:
+    """یکی از کارت‌های فعال را تصادفی برمی‌گرداند تا حجم تراکنش‌ها بین چند کارت پخش شود.
+    اگر agent_id داده شود (مشتری متصل به نماینده از طریق لینک اختصاصی)، پول باید مستقیم به کارت خودِ
+    نماینده برود، نه مالک — اگر آن نماینده هنوز کارتی ثبت نکرده باشد، به کارت‌های مالک برمی‌گردیم."""
+    if agent_id:
+        card = await db.get_random_payment_card(agent_id)
+        if card:
+            return card["card_number"], card["card_holder"]
+
     card = await db.get_random_payment_card()
     if card:
         return card["card_number"], card["card_holder"]

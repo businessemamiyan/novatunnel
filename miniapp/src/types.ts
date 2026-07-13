@@ -191,8 +191,23 @@ export interface SalesStatsDetailed {
 
 export interface AccountingSummary {
   total_sales: number;
+  agency_activation_total: number;
+  wallet_topup_total: number;
+  total_revenue: number;
   total_expenses: number;
   net_profit: number;
+}
+
+export interface RevenueBreakdown {
+  total: number;
+  today: number;
+  week: number;
+  month: number;
+}
+
+export interface OtherRevenue {
+  agency_activation: RevenueBreakdown;
+  wallet_topup: RevenueBreakdown;
 }
 
 export interface WalletCostStats {

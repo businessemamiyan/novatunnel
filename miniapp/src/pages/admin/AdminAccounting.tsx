@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { api } from "../../api";
-import { AccountingSummary, Expense, SalesStatsDetailed } from "../../types";
+import { AccountingSummary, Expense, OtherRevenue, SalesStatsDetailed } from "../../types";
 
 const EXPENSE_CATEGORIES = ["سرور", "برداشت شخصی", "تبلیغات", "سایر"];
 
 export default function AdminAccounting() {
   const [sales, setSales] = useState<SalesStatsDetailed | null>(null);
+  const [otherRevenue, setOtherRevenue] = useState<OtherRevenue | null>(null);
   const [summary, setSummary] = useState<AccountingSummary | null>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [amount, setAmount] = useState("");
@@ -18,6 +19,7 @@ export default function AdminAccounting() {
 
   const load = () => {
     api.get<SalesStatsDetailed>("/accounting/sales-stats").then(setSales);
+    api.get<OtherRevenue>("/accounting/other-revenue").then(setOtherRevenue);
     api.get<AccountingSummary>("/accounting/summary").then(setSummary);
     api.get<Expense[]>("/accounting/expenses").then(setExpenses);
   };
@@ -79,14 +81,32 @@ export default function AdminAccounting() {
         </div>
       )}
 
+      {otherRevenue && (
+        <div className="glass-card p-4 mb-3">
+          <p className="text-sm font-medium mb-3">💳 سایر درآمدهای واقعی</p>
+          <p className="text-xs m-0 mb-1" style={{ color: "var(--text-secondary)" }}>
+            هزینه فعال‌سازی/ارتقای نمایندگان: {otherRevenue.agency_activation.total.toLocaleString("fa-IR")} تومان
+          </p>
+          <p className="text-xs m-0" style={{ color: "var(--text-secondary)" }}>
+            شارژ کیف‌پول کاربران: {otherRevenue.wallet_topup.total.toLocaleString("fa-IR")} تومان
+          </p>
+        </div>
+      )}
+
       {summary && (
         <div className="glass-card p-4 mb-4">
           <p className="text-sm font-medium mb-3">💰 سود / زیان</p>
           <p className="text-xs m-0 mb-1" style={{ color: "var(--text-secondary)" }}>
-            مجموع فروش: {summary.total_sales.toLocaleString("fa-IR")} تومان
+            فروش بسته‌ها: {summary.total_sales.toLocaleString("fa-IR")} تومان
+          </p>
+          <p className="text-xs m-0 mb-1" style={{ color: "var(--text-secondary)" }}>
+            + فعال‌سازی نمایندگی: {summary.agency_activation_total.toLocaleString("fa-IR")} تومان
+          </p>
+          <p className="text-xs m-0 mb-1" style={{ color: "var(--text-secondary)" }}>
+            + شارژ کیف‌پول: {summary.wallet_topup_total.toLocaleString("fa-IR")} تومان
           </p>
           <p className="text-xs m-0 mb-2" style={{ color: "var(--text-secondary)" }}>
-            مجموع هزینه‌ها: {summary.total_expenses.toLocaleString("fa-IR")} تومان
+            = مجموع درآمد {summary.total_revenue.toLocaleString("fa-IR")} − هزینه‌ها {summary.total_expenses.toLocaleString("fa-IR")}
           </p>
           <p
             className="text-lg font-medium m-0"

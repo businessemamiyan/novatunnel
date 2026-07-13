@@ -5,7 +5,7 @@ import { api, uploadFile } from "../api";
 import { openExternalLink } from "../telegram";
 import {
   AgencyActivationResponse, AgencyCustomer, AgencyStatus, AgencyTierConfig, AgentAccounting, AgentPlanPrice,
-  Expense,
+  Expense, PaymentCard,
 } from "../types";
 import CopyButton from "../components/CopyButton";
 
@@ -17,7 +17,7 @@ const TIER_LABELS: Record<string, string> = {
 
 const TIER_ORDER: Record<string, number> = { silver: 1, gold: 2, diamond: 3 };
 
-type Tab = "dashboard" | "sell" | "customers" | "downline" | "link" | "pricing" | "accounting";
+type Tab = "dashboard" | "sell" | "customers" | "downline" | "link" | "pricing" | "cards" | "accounting";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "dashboard", label: "داشبورد" },
@@ -26,6 +26,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "downline", label: "زیرمجموعه" },
   { key: "link", label: "لینک من" },
   { key: "pricing", label: "قیمت‌گذاری" },
+  { key: "cards", label: "💳 کارت‌های من" },
   { key: "accounting", label: "💼 حسابداری" },
 ];
 
@@ -68,6 +69,12 @@ export default function Agency() {
   const [expenseCategory, setExpenseCategory] = useState(EXPENSE_CATEGORIES[0]);
   const [expenseError, setExpenseError] = useState("");
 
+  // کارت‌های پرداخت من
+  const [cards, setCards] = useState<PaymentCard[]>([]);
+  const [newCardNumber, setNewCardNumber] = useState("");
+  const [newCardHolder, setNewCardHolder] = useState("");
+  const [cardError, setCardError] = useState("");
+
   const load = () => {
     api.get<AgencyStatus>("/agency/me").then(setStatus);
     api.get<AgencyTierConfig[]>("/agency/tiers").then(setTiers);
@@ -75,6 +82,7 @@ export default function Agency() {
   useEffect(load, []);
 
   const loadAccounting = () => api.get<AgentAccounting>("/agency/accounting").then(setAccounting);
+  const loadCards = () => api.get<PaymentCard[]>("/agency/payment-cards").then(setCards);
 
   useEffect(() => {
     if (tab === "customers" && status?.is_agent) {
@@ -86,7 +94,38 @@ export default function Agency() {
     if (tab === "accounting" && status?.is_agent) {
       loadAccounting();
     }
+    if (tab === "cards" && status?.is_agent) {
+      loadCards();
+    }
   }, [tab, status?.is_agent]);
+
+  const addCard = async () => {
+    setCardError("");
+    if (!newCardNumber.trim() || !newCardHolder.trim()) {
+      setCardError("لطفاً هم شماره کارت و هم نام صاحب کارت را وارد کنید.");
+      return;
+    }
+    try {
+      await api.post("/agency/payment-cards", { card_number: newCardNumber.trim(), card_holder: newCardHolder.trim() });
+      setNewCardNumber("");
+      setNewCardHolder("");
+      loadCards();
+    } catch (e) {
+      setCardError(e instanceof Error ? e.message : "خطا در افزودن کارت");
+    }
+  };
+
+  const toggleCardActive = async (c: PaymentCard) => {
+    await api.patch(`/agency/payment-cards/${c.id}`, {
+      card_number: c.card_number, card_holder: c.card_holder, is_active: !c.is_active,
+    });
+    loadCards();
+  };
+
+  const removeCard = async (id: number) => {
+    await api.delete(`/agency/payment-cards/${id}`);
+    loadCards();
+  };
 
   const addExpense = async () => {
     setExpenseError("");
@@ -554,6 +593,78 @@ export default function Agency() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {tab === "cards" && (
+        <div className="flex flex-col gap-3">
+          <p className="text-xs mb-1" style={{ color: "var(--text-secondary)" }}>
+            وقتی مشتری از طریق لینک اختصاصی شما خرید می‌کند، دقیقاً یکی از همین کارت‌ها به او نمایش داده می‌شود و
+            رسید هم مستقیم برای تایید خودتان ارسال می‌شود — نه ادمین.
+          </p>
+
+          <div className="glass-card p-4">
+            <p className="text-sm font-medium mb-3">➕ افزودن کارت جدید</p>
+            <label className="text-xs" style={{ color: "var(--text-secondary)" }}>شماره کارت</label>
+            <input
+              type="text"
+              value={newCardNumber}
+              onChange={(e) => setNewCardNumber(e.target.value)}
+              placeholder="6219-8614-0039-0828"
+              className="w-full glass-card px-3 py-2 text-sm bg-transparent outline-none mb-3 mt-1"
+              dir="ltr"
+            />
+            <label className="text-xs" style={{ color: "var(--text-secondary)" }}>به نام</label>
+            <input
+              type="text"
+              value={newCardHolder}
+              onChange={(e) => setNewCardHolder(e.target.value)}
+              className="w-full glass-card px-3 py-2 text-sm bg-transparent outline-none mb-3 mt-1"
+            />
+            {cardError && <p className="text-[11px] mb-2" style={{ color: "var(--danger)" }}>{cardError}</p>}
+            <button
+              onClick={addCard}
+              className="w-full text-sm px-4 py-2 rounded-full"
+              style={{ background: "rgba(62,232,195,0.15)", color: "var(--accent)" }}
+            >
+              افزودن کارت
+            </button>
+          </div>
+
+          {cards.length === 0 ? (
+            <p className="text-xs text-center py-4" style={{ color: "var(--text-secondary)" }}>
+              هنوز کارتی ثبت نکرده‌اید — تا کارتی فعال نداشته باشید، مشتری‌های لینک اختصاصی شما کارت مالک سیستم
+              را می‌بینند.
+            </p>
+          ) : (
+            cards.map((c) => (
+              <div key={c.id} className="glass-card p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span
+                    className="text-[11px] px-2 py-1 rounded-full"
+                    style={{
+                      background: c.is_active ? "rgba(62,232,195,0.15)" : "rgba(255,255,255,0.06)",
+                      color: c.is_active ? "var(--accent)" : "var(--text-secondary)",
+                    }}
+                  >
+                    {c.is_active ? "فعال" : "غیرفعال"}
+                  </span>
+                  <button onClick={() => removeCard(c.id)} className="text-xs" style={{ color: "var(--danger)" }}>
+                    حذف
+                  </button>
+                </div>
+                <p className="text-sm m-0 mb-1" dir="ltr">{c.card_number}</p>
+                <p className="text-xs m-0 mb-3" style={{ color: "var(--text-secondary)" }}>{c.card_holder}</p>
+                <button
+                  onClick={() => toggleCardActive(c)}
+                  className="w-full text-xs px-4 py-2 rounded-full"
+                  style={{ background: "rgba(155,107,214,0.15)", color: "var(--accent-violet)" }}
+                >
+                  {c.is_active ? "غیرفعال کن" : "فعال کن"}
+                </button>
+              </div>
+            ))
+          )}
         </div>
       )}
 
