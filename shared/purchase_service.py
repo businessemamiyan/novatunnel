@@ -67,8 +67,8 @@ async def deliver_service_for_purchase(purchase, buyer) -> str:
         panel = await db.get_panel(panel["id"])
     else:
         expires_at = now + datetime.timedelta(days=config.SERVICE_VALIDITY_DAYS)
-        is_vip = False
-        if purchase["package_id"]:
+        is_vip = bool(purchase["is_vip_service"])
+        if not is_vip and purchase["package_id"]:
             package = await db.get_package(purchase["package_id"])
             is_vip = bool(package and package["is_vip"])
         username, marzban_user = await marzban.create_new_service(

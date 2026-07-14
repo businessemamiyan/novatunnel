@@ -13,9 +13,10 @@ const TIER_LABELS: Record<string, string> = {
   silver: "🥈 نقره‌ای",
   gold: "🥇 طلایی",
   diamond: "💎 برلیان",
+  vip: "🛡 ویژه",
 };
 
-const TIER_ORDER: Record<string, number> = { silver: 1, gold: 2, diamond: 3 };
+const TIER_ORDER: Record<string, number> = { silver: 1, gold: 2, diamond: 3, vip: 4 };
 
 type Tab = "dashboard" | "sell" | "customers" | "downline" | "link" | "pricing" | "cards" | "accounting";
 
@@ -48,6 +49,7 @@ export default function Agency() {
   const [volumeGb, setVolumeGb] = useState("");
   const [priceToman, setPriceToman] = useState("");
   const [isGiftResale, setIsGiftResale] = useState(false);
+  const [isVipService, setIsVipService] = useState(false);
   const [serviceLabel, setServiceLabel] = useState("");
   const [resaleResult, setResaleResult] = useState("");
   const [resaleError, setResaleError] = useState("");
@@ -226,12 +228,14 @@ export default function Agency() {
         price_toman: price,
         is_gift_resale: isGiftResale,
         service_label: serviceLabel || undefined,
+        is_vip_service: isVipService,
       });
       setResaleResult(res.panel_status);
       setCustomerId("");
       setVolumeGb("");
       setPriceToman("");
       setServiceLabel("");
+      setIsVipService(false);
       load();
     } catch (e) {
       setResaleError(e instanceof Error ? e.message : "خطا در ثبت فروش");
@@ -468,6 +472,12 @@ export default function Agency() {
             <input type="checkbox" checked={isGiftResale} onChange={(e) => setIsGiftResale(e.target.checked)} />
             این حجم از حجم هدیه رایگان خودم است (بدون کف قیمت)
           </label>
+          {status.tier === "vip" && (
+            <label className="flex items-center gap-2 text-xs mb-3" style={{ color: "var(--text-secondary)" }}>
+              <input type="checkbox" checked={isVipService} onChange={(e) => setIsVipService(e.target.checked)} />
+              🛡 این سرویس ویژه است (مسیر مقاوم در برابر فیلترینگ فعال باشد)
+            </label>
+          )}
           <button
             onClick={submitResale}
             className="w-full text-sm px-4 py-2 rounded-full"

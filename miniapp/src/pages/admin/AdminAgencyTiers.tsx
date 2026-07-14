@@ -8,6 +8,7 @@ const TIER_LABELS: Record<string, string> = {
   silver: "🥈 نقره‌ای",
   gold: "🥇 طلایی",
   diamond: "💎 برلیان",
+  vip: "🛡 ویژه",
 };
 
 interface Edits {

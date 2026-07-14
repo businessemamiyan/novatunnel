@@ -358,7 +358,7 @@ async def apply_agency_chain_reward_standalone(agent_id, volume_gb: float):
 
 
 async def create_agent_resale(agent_id, customer_user_id, volume_gb: float, price_toman: int,
-                               is_gift_resale: bool, service_label: str | None):
+                               is_gift_resale: bool, service_label: str | None, is_vip_service: bool = False):
     """نماینده مستقیماً به مشتری خودش می‌فروشد — هزینه از کیف‌پول نماینده (یا از حجم هدیه‌اش در حالت is_gift_resale) کسر می‌شود."""
     async with pool().acquire() as conn:
         async with conn.transaction():
@@ -367,6 +367,8 @@ async def create_agent_resale(agent_id, customer_user_id, volume_gb: float, pric
             )
             if agent is None or not agent["is_panel_active"]:
                 raise ValueError("پنل نمایندگی شما فعال نیست")
+            if is_vip_service and agent["tier"] != "vip":
+                raise ValueError("فقط نمایندگان رده ویژه می‌توانند سرویس ویژه بفروشند")
 
             if is_gift_resale:
                 gift_row = await conn.fetchrow(
@@ -406,11 +408,11 @@ async def create_agent_resale(agent_id, customer_user_id, volume_gb: float, pric
                 """
                 insert into purchases
                     (user_id, package_id, volume_gb, price_toman, payment_method, payment_status,
-                     seller_type, seller_agent_id, is_gift_resale, service_label, confirmed_at)
-                values ($1, null, $2, $3, 'card_to_card', 'confirmed', 'agent', $4, $5, $6, now())
+                     seller_type, seller_agent_id, is_gift_resale, service_label, is_vip_service, confirmed_at)
+                values ($1, null, $2, $3, 'card_to_card', 'confirmed', 'agent', $4, $5, $6, $7, now())
                 returning *
                 """,
-                customer_user_id, volume_gb, price_toman, agent_id, is_gift_resale, service_label,
+                customer_user_id, volume_gb, price_toman, agent_id, is_gift_resale, service_label, is_vip_service,
             )
 
             await apply_agency_chain_reward(conn, agent_id, volume_gb)

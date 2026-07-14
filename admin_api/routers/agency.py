@@ -26,6 +26,7 @@ class ResaleRequest(BaseModel):
     price_toman: int
     is_gift_resale: bool = False
     service_label: str | None = None
+    is_vip_service: bool = False
 
 
 class SlugRequest(BaseModel):
@@ -393,7 +394,7 @@ async def resell_to_customer(body: ResaleRequest, user: dict = Depends(get_curre
     try:
         purchase = await db.create_agent_resale(
             db_user["id"], customer["id"], body.volume_gb, body.price_toman,
-            body.is_gift_resale, body.service_label,
+            body.is_gift_resale, body.service_label, body.is_vip_service,
         )
     except ValueError as e:
         raise HTTPException(400, str(e))

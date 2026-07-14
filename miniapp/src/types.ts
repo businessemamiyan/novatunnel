@@ -82,7 +82,7 @@ export interface AdminEntry {
 }
 
 export interface AgencyTierConfig {
-  tier: "silver" | "gold" | "diamond";
+  tier: "silver" | "gold" | "diamond" | "vip";
   activation_fee_toman: number;
   purchase_rate_toman_per_gb: number;
   min_wallet_balance_toman: number;
@@ -114,13 +114,13 @@ export interface PurchaseCreateResponse {
 
 export interface AgencyDownlineEntry {
   agent_id: string;
-  tier: "silver" | "gold" | "diamond";
+  tier: "silver" | "gold" | "diamond" | "vip";
   level: number;
 }
 
 export interface AgencyStatus {
   is_agent: boolean;
-  tier?: "silver" | "gold" | "diamond";
+  tier?: "silver" | "gold" | "diamond" | "vip";
   is_panel_active?: boolean;
   purchase_rate_toman_per_gb?: number;
   min_wallet_balance_toman?: number;
