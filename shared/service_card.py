@@ -35,5 +35,7 @@ def format_service_card(panel, marzban_user, sub_url: str) -> str:
         f"📊 <b>وضعیت:</b> {status}\n"
         f"🗓 <b>تاریخ خرید:</b> {to_shamsi(panel['created_at'])}\n"
         f"⏳ <b>تاریخ انقضا:</b> {to_shamsi(panel['expires_at'])}\n\n"
-        f"🔗 <b>لینک هوشمند اشتراک:</b>\n<code>{sub_url}</code>"
+        f"🔗 <b>لینک هوشمند اشتراک:</b>\n<code>{sub_url}</code>\n\n"
+        "🛡 این لینک شامل یک پروفایل پشتیبان هم هست — اگه در فیلترینگ سنگین اتصال کند شد، توی برنامه‌تون "
+        "پروفایل دوم رو امتحان کنید (توضیح کامل: راهنما ← اتصال پایدار)."
     )

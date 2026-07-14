@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-type Tab = "referral" | "gift" | "credit" | "agency" | "packages";
+type Tab = "referral" | "gift" | "credit" | "agency" | "packages" | "connection";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "referral", label: "دعوت دوستان" },
@@ -9,6 +9,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "credit", label: "اعتبار پاداش" },
   { key: "agency", label: "نمایندگی" },
   { key: "packages", label: "بسته‌ها" },
+  { key: "connection", label: "🛡 اتصال پایدار" },
 ];
 
 export default function Guide() {
@@ -118,6 +119,26 @@ export default function Guide() {
             <p>۵۰ گیگ — ۲۵۰,۰۰۰ تومان</p>
             <p>۱۰۰ گیگ — ۴۰۰,۰۰۰ تومان</p>
             <p>پرداخت: کارت‌به‌کارت (با تایید ادمین) یا پرداخت آنلاین.</p>
+          </div>
+        )}
+
+        {tab === "connection" && (
+          <div className="flex flex-col gap-3">
+            <p className="font-medium m-0" style={{ color: "var(--text-primary)" }}>
+              🛡 اتصال پایدار (برای وقتی فیلترینگ سنگین شد)
+            </p>
+            <p>
+              لینک اشتراک شما همیشه شامل ۲ پروفایل سرور است، نه فقط یکی — برنامه شما (v2rayNG، Streisand، Hiddify و
+              مشابه) هر دو را زیر یک لینک نشون می‌ده:
+            </p>
+            <p>۱️⃣ <b>پروفایل اصلی:</b> سریع‌ترین حالت، برای استفاده روزمره.</p>
+            <p>۲️⃣ <b>پروفایل پشتیبان (CDN):</b> ترافیکش شبیه یک بازدید عادی از یک سایت معروف دیده می‌شه — اگه
+              پروفایل اصلی در فیلترینگ سنگین کار نکرد، همین یکی رو توی برنامه‌تون انتخاب کنید.</p>
+            <p>
+              ⚠️ نکته مهم: هیچ سرویسی (نه فقط ما) نمی‌تونه تضمین کنه در یک قطعی کامل و صددرصدی اینترنت بین‌الملل
+              کار کنه — این محدودیت در سطح زیرساخت کشوره، نه چیزی که با نرم‌افزار حل بشه. آنچه بالا گفتیم برای
+              فیلترینگ سنگین و قطعی‌های موضعی/انتخابی طراحی شده که سناریوی رایج‌تره.
+            </p>
           </div>
         )}
       </div>
