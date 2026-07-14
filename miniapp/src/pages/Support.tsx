@@ -2,6 +2,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { api } from "../api";
+import { openExternalLink } from "../telegram";
+
+const INSTAGRAM_URL = "https://www.instagram.com/nova_tunnel";
 
 const TOPICS = [
   { value: "payment", label: "💳 مشکل پرداخت" },
@@ -83,6 +86,13 @@ export default function Support() {
       </div>
 
       <div className="flex flex-col gap-2 items-start">
+        <button
+          onClick={() => openExternalLink(INSTAGRAM_URL)}
+          className="text-xs"
+          style={{ color: "var(--accent-violet)" }}
+        >
+          📸 فالو ما توی اینستاگرام
+        </button>
         <button
           onClick={() => navigate("/onboarding")}
           className="text-xs"

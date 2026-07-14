@@ -66,18 +66,26 @@ async def deliver_service_for_purchase(purchase, buyer) -> str:
         await db.renew_panel(panel["id"], volume_gb, new_expires_at)
         panel = await db.get_panel(panel["id"])
     else:
-        expires_at = now + datetime.timedelta(days=config.SERVICE_VALIDITY_DAYS)
-        is_vip = bool(purchase["is_vip_service"])
-        if not is_vip and purchase["package_id"]:
-            package = await db.get_package(purchase["package_id"])
-            is_vip = bool(package and package["is_vip"])
+        package = await db.get_package(purchase["package_id"]) if purchase["package_id"] else None
+        is_vip = bool(purchase["is_vip_service"]) or bool(package and package["is_vip"])
+
+        trial_hours = package["trial_hours"] if package else None
+        if trial_hours:
+            expires_at = now + datetime.timedelta(hours=trial_hours)
+            auto_delete_at = expires_at
+        else:
+            expires_at = now + datetime.timedelta(days=config.SERVICE_VALIDITY_DAYS)
+            auto_delete_at = None
+
         username, marzban_user = await marzban.create_new_service(
             buyer["telegram_id"], volume_gb, int(expires_at.timestamp()), is_vip=is_vip
         )
         panel = await db.create_panel(
             buyer["id"], purchase["id"], username, purchase["service_label"],
-            volume_gb, expires_at,
+            volume_gb, expires_at, auto_delete_at=auto_delete_at,
         )
+        if trial_hours:
+            await db.mark_trial_used(buyer["id"])
 
     sub_url = marzban.subscription_url(marzban_user)
     card_text = service_card.format_service_card(panel, marzban_user, sub_url)

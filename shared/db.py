@@ -138,6 +138,11 @@ async def get_purchasable_packages(user_id, gift_balance_gb):
     packages = await get_active_packages()
     if not await can_purchase_key_panel(user_id, gift_balance_gb):
         packages = [p for p in packages if not p["is_key_panel"]]
+
+    trial_used = await pool().fetchval("select trial_used_at from users where id = $1", user_id)
+    if trial_used is not None:
+        packages = [p for p in packages if p["trial_hours"] is None]
+
     pricing = await get_agent_pricing_for_customer(user_id)
     return _apply_agent_pricing(packages, pricing)
 
@@ -764,16 +769,27 @@ async def get_panel(panel_id):
     return await pool().fetchrow("select * from panels where id = $1", panel_id)
 
 
-async def create_panel(user_id, purchase_id, marzban_username, label, traffic_limit_gb, expires_at):
+async def create_panel(user_id, purchase_id, marzban_username, label, traffic_limit_gb, expires_at,
+                        auto_delete_at=None):
     return await pool().fetchrow(
         """
         insert into panels
             (user_id, purchase_id, marzban_username, label, protocol,
-             traffic_limit_gb, expires_at)
-        values ($1, $2, $3, $4, 'vless-reality', $5, $6)
+             traffic_limit_gb, expires_at, auto_delete_at)
+        values ($1, $2, $3, $4, 'vless-reality', $5, $6, $7)
         returning *
         """,
-        user_id, purchase_id, marzban_username, label, traffic_limit_gb, expires_at,
+        user_id, purchase_id, marzban_username, label, traffic_limit_gb, expires_at, auto_delete_at,
+    )
+
+
+async def mark_trial_used(user_id):
+    await pool().execute("update users set trial_used_at = now() where id = $1", user_id)
+
+
+async def get_expired_trial_panels():
+    return await pool().fetch(
+        "select * from panels where is_active and auto_delete_at is not null and auto_delete_at < now()"
     )
 
 

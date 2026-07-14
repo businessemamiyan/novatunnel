@@ -23,6 +23,7 @@ async def priority_receive_phone_contact(message: Message):
 
 EXPIRY_CHECK_INTERVAL_SECONDS = 1800
 USAGE_SYNC_INTERVAL_SECONDS = 1800
+TRIAL_CLEANUP_INTERVAL_SECONDS = 300
 
 
 async def expiry_warning_loop(bot: Bot):
@@ -62,6 +63,32 @@ async def usage_sync_loop():
         await asyncio.sleep(USAGE_SYNC_INTERVAL_SECONDS)
 
 
+async def trial_cleanup_loop(bot: Bot):
+    """پنل‌های بسته آزمایشی که منقضی شده‌اند را واقعاً از Marzban حذف می‌کند (نه فقط غیرفعال)."""
+    while True:
+        try:
+            panels = await db.get_expired_trial_panels()
+            for panel in panels:
+                try:
+                    await marzban.delete_service(panel["marzban_username"])
+                except Exception:
+                    pass
+                await db.deactivate_panel(panel["id"])
+                try:
+                    user = await db.get_user_by_id(panel["user_id"])
+                    if user:
+                        await bot.send_message(
+                            user["telegram_id"],
+                            "⏳ زمان سرویس آزمایشی شما تمام شد و پاک شد. برای ادامه استفاده، یکی از بسته‌ها رو تهیه کن.",
+                        )
+                except Exception:
+                    pass
+        except Exception as e:
+            logging.exception("trial_cleanup_loop error")
+            await notify.notify_team_group(f"🔴 <b>خطای غیرمنتظره در ربات</b>\ntrial_cleanup_loop: {e}")
+        await asyncio.sleep(TRIAL_CLEANUP_INTERVAL_SECONDS)
+
+
 async def main():
     logging.basicConfig(level=logging.INFO)
     await db.init_pool()
@@ -83,6 +110,7 @@ async def main():
 
     asyncio.create_task(expiry_warning_loop(bot))
     asyncio.create_task(usage_sync_loop())
+    asyncio.create_task(trial_cleanup_loop(bot))
 
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
