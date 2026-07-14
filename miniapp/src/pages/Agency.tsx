@@ -386,7 +386,7 @@ export default function Agency() {
           <p className="text-sm font-medium mb-3">⬆️ ارتقای رده نمایندگی</p>
           <div className="flex flex-col gap-2">
             {tiers
-              .filter((t) => TIER_ORDER[t.tier] > TIER_ORDER[status.tier!])
+              .filter((t) => t.tier !== "vip" && TIER_ORDER[t.tier] > TIER_ORDER[status.tier!])
               .map((t) => (
                 <button
                   key={t.tier}
@@ -402,13 +402,52 @@ export default function Agency() {
         </div>
       )}
 
+      {tab === "dashboard" && !activation && (
+        <div className="glass-card p-4 mt-4">
+          <p className="text-sm font-medium mb-2">🛡 سرویس ویژه (مقاوم در برابر فیلترینگ)</p>
+          {status.vip_unlocked ? (
+            <p className="text-xs m-0" style={{ color: "var(--accent)" }}>
+              ✅ فعال — می‌توانید در تب «فروش جدید» سرویس ویژه هم بفروشید.
+            </p>
+          ) : (
+            <>
+              <p className="text-xs mb-3" style={{ color: "var(--text-secondary)" }}>
+                با فعال‌سازی، علاوه بر فروش معمولی (با نرخ فعلی رده‌تان)، می‌توانید سرویس ویژه (مسیر مقاوم رله ایران)
+                هم به مشتری‌هاتون بفروشید — فقط حجم ویژه با نرخ جداگانه محاسبه می‌شود، بقیه فروشتان دست‌نخورده می‌ماند.
+              </p>
+              {tiers
+                .filter((t) => t.tier === "vip")
+                .map((t) => (
+                  <div key={t.tier} className="flex flex-col gap-1 mb-2">
+                    <p className="text-xs m-0" style={{ color: "var(--text-secondary)" }}>
+                      هزینه فعال‌سازی: {t.activation_fee_toman.toLocaleString("fa-IR")} تومان · نرخ خرید حجم ویژه:{" "}
+                      {t.purchase_rate_toman_per_gb.toLocaleString("fa-IR")} تومان/گیگ
+                    </p>
+                    <button
+                      onClick={() => requestActivation("vip")}
+                      className="w-full text-sm px-4 py-2 rounded-full"
+                      style={{ background: "rgba(155,107,214,0.15)", color: "var(--accent-violet)" }}
+                    >
+                      فعال‌سازی سرویس ویژه
+                    </button>
+                  </div>
+                ))}
+              {error && <p className="text-xs mt-1" style={{ color: "var(--danger)" }}>{error}</p>}
+            </>
+          )}
+        </div>
+      )}
+
       {tab === "dashboard" && activation && (
         <div className="glass-card p-4 mt-4">
           <p className="text-sm font-medium mb-2">
-            درخواست ارتقا به رده {TIER_LABELS[activation.tier] || activation.tier} ثبت شد
+            {activation.tier === "vip"
+              ? "درخواست فعال‌سازی سرویس ویژه ثبت شد"
+              : `درخواست ارتقا به رده ${TIER_LABELS[activation.tier] || activation.tier} ثبت شد`}
           </p>
           <p className="text-xs mb-3" style={{ color: "var(--text-secondary)" }}>
-            مبلغ {activation.activation_fee_toman.toLocaleString("fa-IR")} تومان (مابه‌التفاوت) را به شماره کارت زیر واریز کنید:
+            مبلغ {activation.activation_fee_toman.toLocaleString("fa-IR")} تومان
+            {activation.tier !== "vip" && " (مابه‌التفاوت)"} را به شماره کارت زیر واریز کنید:
           </p>
           <div className="flex items-center gap-2 mb-1">
             <p className="text-sm m-0" dir="ltr">💳 {activation.card_number}</p>
@@ -472,7 +511,7 @@ export default function Agency() {
             <input type="checkbox" checked={isGiftResale} onChange={(e) => setIsGiftResale(e.target.checked)} />
             این حجم از حجم هدیه رایگان خودم است (بدون کف قیمت)
           </label>
-          {status.tier === "vip" && (
+          {status.vip_unlocked && (
             <label className="flex items-center gap-2 text-xs mb-3" style={{ color: "var(--text-secondary)" }}>
               <input type="checkbox" checked={isVipService} onChange={(e) => setIsVipService(e.target.checked)} />
               🛡 این سرویس ویژه است (مسیر مقاوم در برابر فیلترینگ فعال باشد)

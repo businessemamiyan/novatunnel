@@ -241,7 +241,9 @@ async def reject_agency_activation_request(request_id):
 
 
 async def confirm_agency_activation_request(request_id):
-    """رده نمایندگی را فعال/ارتقا می‌دهد — نرخ/سقف رده در لحظه فعال‌سازی snapshot می‌شود (بخش ۶.۱)."""
+    """رده نمایندگی را فعال/ارتقا می‌دهد — نرخ/سقف رده در لحظه فعال‌سازی snapshot می‌شود (بخش ۶.۱).
+    tier='vip' استثنا است: یک افزونه روی رده فعلی نماینده است، نه جایگزین آن (بخش ۱۴.۱ گزارش جلسه) —
+    رده و نرخ خرید حجم معمولی دست‌نخورده می‌ماند، فقط vip_unlocked=true می‌شود."""
     async with pool().acquire() as conn:
         async with conn.transaction():
             req = await conn.fetchrow(
@@ -258,6 +260,24 @@ async def confirm_agency_activation_request(request_id):
             existing = await conn.fetchrow(
                 "select * from agency_tiers where user_id = $1", req["user_id"]
             )
+
+            if req["tier"] == "vip":
+                if existing is None:
+                    raise ValueError("ابتدا باید یکی از رده‌های نمایندگی را فعال کرده باشید")
+                new_min_wallet = max(
+                    float(existing["min_wallet_balance_toman"]), float(tier_cfg["min_wallet_balance_toman"])
+                )
+                agent = await conn.fetchrow(
+                    """
+                    update agency_tiers
+                    set vip_unlocked = true, vip_activated_at = now(), min_wallet_balance_toman = $2
+                    where user_id = $1
+                    returning *
+                    """,
+                    req["user_id"], new_min_wallet,
+                )
+                return agent
+
             if existing:
                 agent = await conn.fetchrow(
                     """
@@ -367,8 +387,8 @@ async def create_agent_resale(agent_id, customer_user_id, volume_gb: float, pric
             )
             if agent is None or not agent["is_panel_active"]:
                 raise ValueError("پنل نمایندگی شما فعال نیست")
-            if is_vip_service and agent["tier"] != "vip":
-                raise ValueError("فقط نمایندگان رده ویژه می‌توانند سرویس ویژه بفروشند")
+            if is_vip_service and not agent["vip_unlocked"]:
+                raise ValueError("ابتدا باید سرویس ویژه را برای پنل نمایندگی خود فعال کنید")
 
             if is_gift_resale:
                 gift_row = await conn.fetchrow(
@@ -389,7 +409,11 @@ async def create_agent_resale(agent_id, customer_user_id, volume_gb: float, pric
                 floor_price = volume_gb * min_per_gb
                 if price_toman < floor_price:
                     raise ValueError(f"قیمت فروش نباید کمتر از {floor_price:,.0f} تومان ({min_per_gb:g}ت/گیگ) باشد")
-                cost = volume_gb * float(agent["purchase_rate_toman_per_gb"])
+                rate = float(agent["purchase_rate_toman_per_gb"])
+                if is_vip_service:
+                    vip_cfg = await conn.fetchrow("select * from agency_tier_config where tier = 'vip'")
+                    rate = float(vip_cfg["purchase_rate_toman_per_gb"])
+                cost = volume_gb * rate
                 wallet_row = await conn.fetchrow(
                     "select wallet_balance_toman from users where id = $1 for update", agent_id
                 )
@@ -419,6 +443,20 @@ async def create_agent_resale(agent_id, customer_user_id, volume_gb: float, pric
 
     await recompute_agent_panel_active(agent_id)
     return purchase
+
+
+async def create_test_grant_purchase(user_id, volume_gb: float, service_label: str | None, is_vip_service: bool = False):
+    """اعطای دستی سرویس تست/رایگان توسط ادمین — is_test=true یعنی در آمار فروش/حسابداری لحاظ نمی‌شود."""
+    return await pool().fetchrow(
+        """
+        insert into purchases
+            (user_id, package_id, volume_gb, price_toman, payment_method, payment_status,
+             seller_type, service_label, is_vip_service, is_test, confirmed_at)
+        values ($1, null, $2, 0, 'card_to_card', 'confirmed', 'owner', $3, $4, true, now())
+        returning *
+        """,
+        user_id, volume_gb, service_label, is_vip_service,
+    )
 
 
 async def find_discount_code(code: str):
@@ -1014,7 +1052,7 @@ async def get_sales_stats_by_scope(seller_agent_id=None):
               and (confirmed_at at time zone 'Asia/Tehran') >= date_trunc('month', now() at time zone 'Asia/Tehran')
           ), 0) as month_sales
         from purchases
-        where ($1::uuid is null or seller_agent_id = $1)
+        where ($1::uuid is null or seller_agent_id = $1) and not is_test
         """,
         seller_agent_id,
     )

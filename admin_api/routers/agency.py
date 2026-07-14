@@ -109,6 +109,7 @@ async def my_agency_status(user: dict = Depends(get_current_user)):
         "downline": [{"agent_id": str(d["agent_id"]), "tier": d["tier"], "level": d["level"]} for d in downline],
         "agent_slug": agent["agent_slug"],
         "custom_pricing_enabled": agent["custom_pricing_enabled"],
+        "vip_unlocked": agent["vip_unlocked"],
     }
 
 
@@ -311,7 +312,14 @@ async def request_activation(body: ActivationRequest, user: dict = Depends(get_c
     existing = await db.get_agent_info(db_user["id"])
     is_upgrade = existing is not None
     fee = int(tier_cfg["activation_fee_toman"])
-    if is_upgrade:
+
+    if body.tier == "vip":
+        # ویژه یک افزونه روی رده فعلی است، نه جایگزین آن — همیشه هزینه کامل، نه مابه‌التفاوت
+        if existing is None:
+            raise HTTPException(400, "ابتدا باید یکی از رده‌های نمایندگی را فعال کنید")
+        if existing["vip_unlocked"]:
+            raise HTTPException(400, "سرویس ویژه از قبل برای شما فعال است")
+    elif is_upgrade:
         current_cfg = await db.get_agency_tier_config_by_tier(existing["tier"])
         fee = max(fee - int(current_cfg["activation_fee_toman"]), 0)
 

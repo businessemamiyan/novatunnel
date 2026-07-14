@@ -110,6 +110,7 @@ async def approve_purchase(purchase_id: str, admin_telegram_id: int):
     if reward_credit_used > 0:
         await db.debit_reward_credit(buyer["id"], reward_credit_used)
 
+    package = None
     if purchase["package_id"]:
         package = await db.get_package(purchase["package_id"])
         if package and package["is_key_panel"]:
@@ -121,7 +122,12 @@ async def approve_purchase(purchase_id: str, admin_telegram_id: int):
         agent = await db.get_agent_info(agent_id)
         if agent:
             volume_gb = float(purchase["volume_gb"])
-            cost = volume_gb * float(agent["purchase_rate_toman_per_gb"])
+            is_vip = bool(purchase["is_vip_service"]) or bool(package and package["is_vip"])
+            rate = float(agent["purchase_rate_toman_per_gb"])
+            if is_vip:
+                vip_cfg = await db.get_agency_tier_config_by_tier("vip")
+                rate = float(vip_cfg["purchase_rate_toman_per_gb"])
+            cost = volume_gb * rate
             profit = float(purchase["price_toman"]) - cost
             await db.credit_wallet(
                 agent_id, "agency_resale_cost", -cost,

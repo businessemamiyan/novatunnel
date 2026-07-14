@@ -17,10 +17,18 @@ interface AdminPanel {
 
 export default function AdminServices() {
   const [items, setItems] = useState<AdminPanel[]>([]);
-  const [status, setStatus] = useState<string>("");
+  const [status, setStatus] = useState<string>("active");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  const [grantTelegramId, setGrantTelegramId] = useState("");
+  const [grantVolumeGb, setGrantVolumeGb] = useState("");
+  const [grantLabel, setGrantLabel] = useState("");
+  const [grantVip, setGrantVip] = useState(false);
+  const [grantResult, setGrantResult] = useState("");
+  const [grantError, setGrantError] = useState("");
+  const [showGrantForm, setShowGrantForm] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -52,12 +60,86 @@ export default function AdminServices() {
     load();
   };
 
+  const grantService = async () => {
+    setGrantError("");
+    setGrantResult("");
+    const vol = Number(grantVolumeGb);
+    if (!grantTelegramId || !vol) {
+      setGrantError("آیدی عددی تلگرام و حجم را وارد کنید.");
+      return;
+    }
+    try {
+      const res = await api.post<{ id: string; panel_status: string }>("/services/grant", {
+        telegram_id: Number(grantTelegramId),
+        volume_gb: vol,
+        service_label: grantLabel || undefined,
+        is_vip_service: grantVip,
+      });
+      setGrantResult(res.panel_status);
+      setGrantTelegramId("");
+      setGrantVolumeGb("");
+      setGrantLabel("");
+      setGrantVip(false);
+      load();
+    } catch (e) {
+      setGrantError(e instanceof Error ? e.message : "خطا در ثبت سرویس تست");
+    }
+  };
+
   return (
     <div className="p-4 pb-24">
       <button onClick={() => navigate("/admin")} className="text-sm mb-4" style={{ color: "var(--accent)" }}>
         → بازگشت
       </button>
       <p className="text-lg font-medium mb-4">🧩 مدیریت سرویس‌ها</p>
+
+      <button
+        onClick={() => setShowGrantForm((v) => !v)}
+        className="w-full text-sm px-4 py-2 rounded-full mb-4"
+        style={{ background: "rgba(155,107,214,0.15)", color: "var(--accent-violet)" }}
+      >
+        🎁 اعطای سرویس تست/رایگان (در حسابداری حساب نمی‌شود)
+      </button>
+
+      {showGrantForm && (
+        <div className="glass-card p-4 mb-4">
+          <label className="text-xs" style={{ color: "var(--text-secondary)" }}>آیدی عددی تلگرام کاربر</label>
+          <input
+            type="number"
+            value={grantTelegramId}
+            onChange={(e) => setGrantTelegramId(e.target.value)}
+            className="w-full glass-card px-3 py-2 text-sm bg-transparent outline-none mb-3 mt-1"
+            dir="ltr"
+          />
+          <label className="text-xs" style={{ color: "var(--text-secondary)" }}>حجم (گیگ)</label>
+          <input
+            type="number"
+            value={grantVolumeGb}
+            onChange={(e) => setGrantVolumeGb(e.target.value)}
+            className="w-full glass-card px-3 py-2 text-sm bg-transparent outline-none mb-3 mt-1"
+          />
+          <label className="text-xs" style={{ color: "var(--text-secondary)" }}>اسم دلخواه سرویس (اختیاری)</label>
+          <input
+            type="text"
+            value={grantLabel}
+            onChange={(e) => setGrantLabel(e.target.value)}
+            className="w-full glass-card px-3 py-2 text-sm bg-transparent outline-none mb-3 mt-1"
+          />
+          <label className="flex items-center gap-2 text-xs mb-3" style={{ color: "var(--text-secondary)" }}>
+            <input type="checkbox" checked={grantVip} onChange={(e) => setGrantVip(e.target.checked)} />
+            🛡 این سرویس ویژه باشد (مسیر مقاوم فیلترینگ)
+          </label>
+          {grantError && <p className="text-[11px] mb-2" style={{ color: "var(--danger)" }}>{grantError}</p>}
+          {grantResult && <p className="text-[11px] mb-2" style={{ color: "var(--accent)" }}>{grantResult}</p>}
+          <button
+            onClick={grantService}
+            className="w-full text-sm px-4 py-2 rounded-full"
+            style={{ background: "rgba(62,232,195,0.15)", color: "var(--accent)" }}
+          >
+            ثبت و تحویل سرویس
+          </button>
+        </div>
+      )}
 
       <div className="flex gap-2 mb-4">
         <input
@@ -84,7 +166,18 @@ export default function AdminServices() {
         <div className="flex flex-col gap-3">
           {items.map((p) => (
             <div key={p.id} className="glass-card p-4">
-              <p className="font-medium m-0 mb-1">{p.label ?? p.marzban_username}</p>
+              <div className="flex items-center justify-between mb-1">
+                <p className="font-medium m-0">{p.label ?? p.marzban_username}</p>
+                <span
+                  className="text-[11px] px-2 py-1 rounded-full shrink-0"
+                  style={{
+                    background: p.is_active ? "rgba(62,232,195,0.15)" : "rgba(240,97,106,0.15)",
+                    color: p.is_active ? "var(--accent)" : "var(--danger)",
+                  }}
+                >
+                  {p.is_active ? "فعال" : "❌ حذف‌شده"}
+                </span>
+              </div>
               <p className="text-xs m-0 mb-2" style={{ color: "var(--text-secondary)" }}>
                 @{p.telegram_username ?? "بدون‌یوزرنیم"} · {p.full_name}
               </p>

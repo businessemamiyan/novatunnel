@@ -130,6 +130,7 @@ export interface AgencyStatus {
   downline?: AgencyDownlineEntry[];
   agent_slug?: string | null;
   custom_pricing_enabled?: boolean;
+  vip_unlocked?: boolean;
 }
 
 export interface AgentPlanPrice {
