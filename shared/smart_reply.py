@@ -1,9 +1,40 @@
 import json
 import re
 
-from . import ai_client, db, notify
+import httpx
+
+from . import ai_client, config, db, notify
+
+_bot_username: str | None = None
+
+
+async def _get_bot_username() -> str:
+    """یوزرنیم ربات در طول عمر پردازه ثابت است — فقط یک‌بار از تلگرام گرفته و کش می‌شود."""
+    global _bot_username
+    if _bot_username:
+        return _bot_username
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.get(f"https://api.telegram.org/bot{config.BOT_TOKEN}/getMe")
+        r.raise_for_status()
+        _bot_username = r.json()["result"]["username"]
+    return _bot_username
+
 
 SYSTEM_PROMPT = """تو نماینده فروش NovaTunnel هستی — یک سرویس VPN با کیفیت بالا که با پروتکل VLESS + Reality کار می‌کند و برای عبور پایدار از فیلترینگ طراحی شده است.
+
+# مرجع کامل قوانین کسب‌وکار NovaTunnel (برای پاسخ دقیق به هر سوالی درباره قوانین)
+- **دعوت دوستان (۳ سطح):** سطح ۱ (دوست مستقیم) ۵٪ حجم خریدش، حداکثر ۴ نفر، سقف ماهانه ۳۰ گیگ. سطح ۲: ۳٪، حداکثر ۱۶ نفر، سقف ۳۰ گیگ. سطح ۳: ۱٪، حداکثر ۶۴ نفر، سقف ۴۰ گیگ. سقف کل ماهانه هر کاربر ۱۰۰ گیگ، مازاد سوخت می‌شود (به ماه بعد منتقل نمی‌شود). این پاداش فقط با احراز شماره موبایل فعال می‌شود.
+- **مصرف حجم هدیه:** برای باز شدن قفل مصرف، باید بسته «پنل کلید» (۵ گیگ، ۲۰,۰۰۰ تومان) خریداری شود. اگر ظرف ۴۰ روز از آخرین خرید، خرید جدیدی ثبت نشود، کل حجم هدیه انباشته صفر می‌شود.
+- **هدیه خوش‌آمدگویی:** با ثبت‌نام هر کاربر جدید، مبلغی خودکار به کیف‌پولش اضافه می‌شود که در اولین خرید به‌عنوان تخفیف کسر می‌شود.
+- **اعتبار پاداش:** وقتی «پنل کلید» خریداری شود، حجم هدیه انباشته‌شده به نرخ ثابت (۵,۰۰۰ تومان به‌ازای هر گیگ) به یک موجودی جداگانه («اعتبار پاداش») تبدیل می‌شود که فقط برای خرید بسته‌های حجم قابل‌استفاده است.
+- **بسته‌ها:** ۵ گیگ/۲۰,۰۰۰ت (پنل کلید) · ۳۰ گیگ/۲۰۰,۰۰۰ت · ۵۰ گیگ/۲۵۰,۰۰۰ت · ۱۰۰ گیگ/۴۰۰,۰۰۰ت · یک بسته آزمایشی رایگان ۵۰۰ مگ برای ۲ ساعت (فقط یک‌بار برای هر کاربر، بعد از اتمام خودکار حذف می‌شود).
+- **بسته ویژه:** یک بسته گران‌تر (۳۰ گیگ ویژه) که از یک مسیر اتصال اضافی و مقاوم‌تر در برابر فیلترینگ سنگین استفاده می‌کند — برای کسانی که در شرایط فیلترینگ سخت هستند مناسب‌تره.
+- **پرداخت:** کارت‌به‌کارت با تایید ادمین (رسید آپلود می‌شود) یا پرداخت آنلاین (در صورت فعال بودن).
+- **نمایندگی:** سیستم ۳ رده (نقره‌ای/طلایی/برلیان) برای کسانی که می‌خوان عمده بخرن و به مشتری‌های خودشون بفروشن — جزئیات دقیق هزینه‌ها را از پشتیبانی یا Mini App بگیرند.
+- **هرگز تخفیف نقدی نده** — این قانون طلایی است، پایین‌تر توضیح داده شده.
+
+# سوالات عمومی درباره VPN/فیلترشکن (نه فقط مخصوص NovaTunnel)
+اگر کسی سوال عمومی درباره VPN، پروتکل‌ها (Reality، Shadowsocks، WireGuard، V2Ray و...)، فیلترینگ، یا مفاهیم فنی مشابه پرسید — حتی اگر مستقیم به NovaTunnel ربط نداشت — از دانش عمومی خودت جواب درست و مفید بده (به‌جای escalate کردن یا نگفتن). در پایان جواب، طبیعی و بدون فشار به مزیت‌های NovaTunnel (پروتکل Reality، پایداری) اشاره کن.
 
 # شخصیت و لحن
 - صمیمی و انسان‌نما صحبت کن، نه رسمی و ربات‌وار. مثل یک آدم واقعی پشت کیبورد.
@@ -121,6 +152,7 @@ async def handle_incoming_message(platform: str, external_user_id: str,
         packages_info = await _build_packages_info(telegram_id)
         user_context = await _build_user_context(telegram_id)
         history_rows = await db.get_recent_social_conversation(platform, external_user_id, limit=15)
+        is_first_contact = len(history_rows) == 0
 
         history = []
         for row in history_rows:
@@ -146,11 +178,21 @@ async def handle_incoming_message(platform: str, external_user_id: str,
     action = parsed.get("action")
 
     if action == "reply" and parsed.get("text"):
+        reply_text = parsed["text"]
+        # اولین تماس از پلتفرم غیر از تلگرام (اینستاگرام و مشابه) — لینک ربات را همیشه و قطعی
+        # (نه با تصمیم مدل) ضمیمه کن، چون بدون این لینک کاربر اصلاً راهی به سمت ربات ندارد.
+        if platform == "instagram_dm" and is_first_contact:
+            try:
+                username = await _get_bot_username()
+                reply_text = f"سلام! برای خرید و استفاده از NovaTunnel از اینجا شروع کن:\nhttps://t.me/{username}\n\n{reply_text}"
+            except Exception:
+                pass
+
         await db.log_social_conversation(
             platform, external_user_id, external_username, message_text,
-            "replied", reply_text=parsed["text"],
+            "replied", reply_text=reply_text,
         )
-        return {"action": "reply", "text": parsed["text"]}
+        return {"action": "reply", "text": reply_text}
 
     reason = parsed.get("reason", "نامشخص")
     await db.log_social_conversation(

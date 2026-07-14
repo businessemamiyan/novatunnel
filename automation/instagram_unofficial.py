@@ -73,6 +73,26 @@ async def _handle_direct_messages(cl: Client):
             await db.mark_instagram_item_handled(item_id, "dm")
 
 
+async def _dm_bot_link_once(cl: Client, user_pk: int):
+    """هرکسی که زیر پست ما کامنت بذاره، یک‌بار (نه هر بار) توی دایرکت لینک ربات را برایش می‌فرستیم —
+    چون خودش با کامنت گذاشتن روی پست ما تعامل نشون داده، این فرق دارد با پیام ناخواسته به غریبه‌ها."""
+    item_id = f"comment_dm_link:{user_pk}"
+    if await db.is_instagram_item_handled(item_id):
+        return
+    try:
+        username = await smart_reply._get_bot_username()
+        await asyncio.sleep(random.uniform(MIN_REPLY_DELAY_SECONDS, MAX_REPLY_DELAY_SECONDS))
+        await asyncio.to_thread(
+            cl.direct_send,
+            f"سلام! ممنون از کامنتت 🙏 برای خرید و استفاده از NovaTunnel از اینجا شروع کن:\nhttps://t.me/{username}",
+            user_ids=[user_pk],
+        )
+    except Exception:
+        logger.exception("failed to dm bot link to commenter %s", user_pk)
+    finally:
+        await db.mark_instagram_item_handled(item_id, "comment_dm_link")
+
+
 async def _handle_comments(cl: Client):
     medias = await asyncio.to_thread(cl.user_medias, cl.user_id, 5)
     for media in medias:
@@ -96,6 +116,7 @@ async def _handle_comments(cl: Client):
                     cl.media_comment, media.id, result["text"], comment.pk
                 )
             await db.mark_instagram_item_handled(item_id, "comment")
+            await _dm_bot_link_once(cl, comment.user.pk)
 
 
 async def post_random_package_promo():
