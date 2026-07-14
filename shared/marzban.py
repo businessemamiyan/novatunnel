@@ -37,16 +37,20 @@ async def get_marzban_user(username: str):
         return r.json()
 
 
-async def create_new_service(telegram_id: int, volume_gb: float, expire_at: int):
-    """هر خرید = یک سرویس مستقل: یک اکانت Marzban کاملاً جدید با یوزرنیم یکتا می‌سازد."""
+async def create_new_service(telegram_id: int, volume_gb: float, expire_at: int, is_vip: bool = False):
+    """هر خرید = یک سرویس مستقل: یک اکانت Marzban کاملاً جدید با یوزرنیم یکتا می‌سازد.
+    is_vip=True فقط برای خریداران بسته ویژه — اینباند اختصاصی رله سرور ایران (شرایط سخت) را هم اضافه می‌کند."""
     username = f"nt_{telegram_id}_{uuid.uuid4().hex[:8]}"
     data_bytes = int(volume_gb * 1024 ** 3)
     token = await _get_token()
     headers = {"Authorization": f"Bearer {token}"}
+    inbounds = ["VLESS TCP REALITY", "VLESS WS TLS CDN"]
+    if is_vip:
+        inbounds.append("VLESS TCP REALITY VIP")
     body = {
         "username": username,
         "proxies": {"vless": {"id": str(uuid.uuid4()), "flow": "xtls-rprx-vision"}},
-        "inbounds": {"vless": ["VLESS TCP REALITY", "VLESS WS TLS CDN"]},
+        "inbounds": {"vless": inbounds},
         "expire": expire_at,
         "data_limit": data_bytes,
         "data_limit_reset_strategy": "no_reset",
