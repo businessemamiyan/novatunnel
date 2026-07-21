@@ -22,6 +22,7 @@
 | فرانت‌اند | Telegram Mini App |
 | سرور | AlmaLinux 9 relay، iptables DNAT، Marzban-Node روی Docker |
 | پرداخت | زرین‌پال / کارت‌به‌کارت با تأیید ادمین / کریپتو (Nowpayments) |
+| پنل مدیریت v2 (جدید) | `panel-api/` (FastAPI مستقل، JWT+Telegram Login Widget) + `admin-panel/` (React، دسکتاپی) — فقط روی سرور رلهٔ ایران، جدا از `admin_api`/`bot` هلند؛ جزئیات در `panel-api/README.md` |
 
 **بدهی معماری شناخته‌شده:** ستون `marzban_username` فعلاً موقتاً در ستون قدیمی `xui_client_id` ذخیره می‌شود؛ باید در فاز مهاجرت اصلاح شود.
 

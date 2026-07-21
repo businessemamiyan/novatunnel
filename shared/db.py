@@ -1497,3 +1497,92 @@ async def apply_referral_rewards(purchase):
                 )
                 results.append((ancestor_id, level, amount))
     return results
+
+
+# ===== Admin Panel v2 (panel-api) — لایه جدید additive، هیچ تابع بالا تغییر نکرده =====
+
+async def get_all_agents_admin(search: str | None = None, limit: int = 50, offset: int = 0):
+    """لیست تجمیعی همه نمایندگان با آمار پایه — چیزی که در endpointهای per-agent موجود وجود ندارد."""
+    where = ""
+    args: list = []
+    if search:
+        args.append(f"%{search}%")
+        where = "where u.telegram_username ilike $1 or u.full_name ilike $1 or u.telegram_id::text ilike $1"
+    args.extend([limit, offset])
+    return await pool().fetch(
+        f"""
+        select
+          a.user_id, a.tier, a.upline_agent_id, a.purchase_rate_toman_per_gb,
+          a.min_wallet_balance_toman, a.is_panel_active, a.vip_unlocked, a.agent_slug,
+          a.activated_at,
+          u.telegram_id, u.telegram_username, u.full_name, u.wallet_balance_toman,
+          (select count(*) from agency_tiers d where d.upline_agent_id = a.user_id) as direct_downline_count
+        from agency_tiers a
+        join users u on u.id = a.user_id
+        {where}
+        order by a.activated_at desc
+        limit ${len(args) - 1} offset ${len(args)}
+        """,
+        *args,
+    )
+
+
+async def count_all_agents(search: str | None = None) -> int:
+    if search:
+        row = await pool().fetchrow(
+            """
+            select count(*) as c from agency_tiers a join users u on u.id = a.user_id
+            where u.telegram_username ilike $1 or u.full_name ilike $1 or u.telegram_id::text ilike $1
+            """,
+            f"%{search}%",
+        )
+    else:
+        row = await pool().fetchrow("select count(*) as c from agency_tiers")
+    return row["c"]
+
+
+async def count_pending_agency_activation_requests() -> int:
+    row = await pool().fetchrow(
+        "select count(*) as c from agency_activation_requests where status = 'pending'"
+    )
+    return row["c"]
+
+
+async def count_pending_wallet_topup_requests() -> int:
+    row = await pool().fetchrow(
+        "select count(*) as c from wallet_topup_requests where status = 'pending'"
+    )
+    return row["c"]
+
+
+# --- admin_refresh_tokens (پنل مدیریت دسکتاپ — panel-api) ---
+
+async def create_admin_refresh_token(telegram_id: int, token_hash: str, expires_at):
+    await pool().execute(
+        """
+        insert into admin_refresh_tokens (telegram_id, token_hash, expires_at)
+        values ($1, $2, $3)
+        """,
+        telegram_id, token_hash, expires_at,
+    )
+
+
+async def get_admin_refresh_token(token_hash: str):
+    return await pool().fetchrow(
+        "select * from admin_refresh_tokens where token_hash = $1",
+        token_hash,
+    )
+
+
+async def revoke_admin_refresh_token(token_hash: str):
+    await pool().execute(
+        "update admin_refresh_tokens set revoked_at = now() where token_hash = $1 and revoked_at is null",
+        token_hash,
+    )
+
+
+async def revoke_all_admin_refresh_tokens(telegram_id: int):
+    await pool().execute(
+        "update admin_refresh_tokens set revoked_at = now() where telegram_id = $1 and revoked_at is null",
+        telegram_id,
+    )

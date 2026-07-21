@@ -1,0 +1,227 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/Vazirmatn-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/Vazirmatn-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/Vazirmatn-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/Vazirmatn-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-display: swap;
+}
+
+:root {
+  --bg-deep: #050914;
+  --bg-mid: #0d0a24;
+  --surface: rgba(15, 36, 56, 0.55);
+  --surface-border: rgba(70, 220, 190, 0.2);
+  --text-primary: #eafffa;
+  --text-secondary: #7fa89c;
+  --accent: #3ee8c3;
+  --accent-violet: #9b6bd6;
+  --info: #5aa9e6;
+  --danger: #f0616a;
+  --warning: #f0c419;
+  --sidebar-width: 264px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: "Vazirmatn", sans-serif;
+  background: radial-gradient(circle at 20% -10%, #10233a 0%, var(--bg-deep) 55%),
+    linear-gradient(160deg, var(--bg-deep), var(--bg-mid));
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+::selection {
+  background: rgba(62, 232, 195, 0.3);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 16px;
+  padding: 20px;
+  backdrop-filter: blur(6px);
+}
+
+.stat-label {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  margin: 4px 0;
+}
+
+.trend {
+  font-size: 12px;
+  color: var(--accent);
+}
+
+.trend.down {
+  color: var(--danger);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge.success {
+  background: rgba(62, 232, 195, 0.15);
+  color: var(--accent);
+}
+
+.badge.warning {
+  background: rgba(240, 196, 25, 0.15);
+  color: var(--warning);
+}
+
+.badge.danger {
+  background: rgba(240, 97, 106, 0.15);
+  color: var(--danger);
+}
+
+.badge.info {
+  background: rgba(90, 169, 230, 0.15);
+  color: var(--info);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.data-table th {
+  text-align: right;
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.data-table td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(70, 220, 190, 0.08);
+}
+
+.data-table tbody tr:hover {
+  background: rgba(70, 220, 190, 0.05);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 10px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.btn:hover {
+  opacity: 0.9;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-violet));
+  color: #04151d;
+}
+
+.btn-secondary {
+  background: transparent;
+  border-color: var(--surface-border);
+  color: var(--text-primary);
+}
+
+.input {
+  background: rgba(5, 9, 20, 0.6);
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+  padding: 9px 12px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--accent);
+}
+
+.chart-bar-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  height: 140px;
+}
+
+.chart-bar {
+  flex: 1;
+  background: linear-gradient(180deg, var(--accent), rgba(62, 232, 195, 0.15));
+  border-radius: 6px 6px 0 0;
+  position: relative;
+  min-height: 4px;
+}
+
+.chart-bar-label {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--surface-border);
+  border-radius: 999px;
+}
